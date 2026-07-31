@@ -224,7 +224,7 @@ nav button.on .ic{filter:drop-shadow(0 0 8px rgba(242,168,29,.8))}
     </div>
     <div class="htot">
       <div class="n money" id="tripTotal">0</div>
-      <div class="l">total spent</div>
+      <div class="l" id="totLabel">total spent</div>
     </div>
     <button class="shareBtn" id="shareBtn" aria-label="Share">↗</button>
   </div>
@@ -250,7 +250,7 @@ nav button.on .ic{filter:drop-shadow(0 0 8px rgba(242,168,29,.8))}
 
   <!-- SETTLE -->
   <section class="screen" id="s-settle">
-    <div class="eyebrow">Settle in</div>
+    <div class="eyebrow">Show amounts in</div>
     <div class="seg" id="settleCurSeg"></div>
     <div class="eyebrow">Fewest payments to zero out</div>
     <div class="card" id="settleBody"></div>
@@ -267,6 +267,9 @@ nav button.on .ic{filter:drop-shadow(0 0 8px rgba(242,168,29,.8))}
         <label class="f"><span>Second currency</span><input id="setAlt" maxlength="4" placeholder="USD"></label>
       </div>
       <label class="f"><span>1 <b id="curA">EUR</b> = ? <b id="curB">USD</b></span><input id="setRate" inputmode="decimal" placeholder="1.08"></label>
+      <label class="f"><span>Show amounts in</span></label>
+      <div class="seg" id="dispCurSeg" style="margin:-8px 0 8px"></div>
+      <p class="note" style="margin:0 0 16px">Totals, balances and settle-up all display in this. Expenses stay recorded in <b id="bookCur">EUR</b> exactly as they were paid.</p>
       <button class="btn teal" id="saveTrip">Save trip</button>
     </div>
 
@@ -469,12 +472,14 @@ function render(){
   $("#tripName").textContent=S.name||"Trip";
   const list=items(),spend=list.filter(i=>i.kind!=="pay");
   const tot=spend.reduce((a,i)=>a+i.cents,0);
-  $("#tripTotal").textContent=fmt(tot);
+  $("#tripTotal").textContent=fmtD(tot);
+  $("#totLabel").textContent=`total spent · ${dispCur()}`;
   const n=people().length;
   $("#tripSub").textContent=n?`${n} ${n===1?"person":"people"} · ${spend.length} ${spend.length===1?"expense":"expenses"}`:"add people to start";
   renderLog(list);renderCatBreak();renderFilter();renderBal();renderSettle();renderPeople();renderSync();
   $("#setName").value=S.name||"";$("#setCur").value=S.cur;$("#setAlt").value=S.alt||"";
   $("#setRate").value=S.rate;$("#curA").textContent=S.cur;$("#curB").textContent=S.alt||"—";
+  $("#dispCurSeg").innerHTML=curSeg();$("#bookCur").textContent=S.cur;
 }
 function dayLabel(d){
   const t=new Date(),iso=x=>x.toISOString().slice(0,10);
@@ -499,7 +504,7 @@ function renderCatBreak(){
   if(!tot){el.innerHTML=`<div class="empty" style="padding:26px">Nothing logged yet.</div>`;return;}
   el.innerHTML=cats.map(([c,v])=>`<button class="barrow" style="width:100%;text-align:left" data-jump="${c}">
     <div class="bartop"><span>${c} ${esc(catName(c))}</span>
-      <span><span class="money">${fmt(v)}</span> <span class="pct">${Math.round(v/tot*100)}%</span></span></div>
+      <span><span class="money">${fmtD(v)}</span> <span class="pct">${Math.round(v/tot*100)}%</span></span></div>
     <div class="bartrack"><div class="barfill" style="width:${v/cats[0][1]*100}%"></div></div></button>`).join("");
 }
 function renderLog(all){
@@ -515,11 +520,11 @@ function renderLog(all){
     const payTxt=pn.length>1?`${pn.length} people paid`:`${nameOf(pn[0])} paid`;
     const sub=it.kind==="pay"?`${nameOf(it.payer)} → ${nameOf(it.with[0])}`
       :`${payTxt} · split ${who===people().length?"evenly":`${who} way${who===1?"":"s"}`}`;
-    const alt=S.alt&&S.rate?`<div class="b money">${fmt(Math.round(it.cents*S.rate),S.alt)}</div>`:"";
+    const alt=otherCur()&&S.rate?`<div class="b money">${fmt(toOther(it.cents),otherCur())}</div>`:"";
     h+=`<button class="item" data-edit="${it.id}">
       <div class="cat">${it.kind==="pay"?"🤝":it.cat||"💶"}</div>
       <div class="mid"><div class="t">${esc(it.desc||"Expense")}</div><div class="s">${esc(sub)}</div></div>
-      <div class="amt"><div class="a money">${fmt(it.cents)}</div>${alt}</div></button>`;
+      <div class="amt"><div class="a money">${fmtD(it.cents)}</div>${alt}</div></button>`;
     const nx=list[list.indexOf(it)+1];
     if(!nx||nx.date!==day)h+=`</div>`;
   });
@@ -531,9 +536,9 @@ function renderBal(){
   const max=Math.max(1,...ps.map(p=>Math.abs(b[p.id]||0)));
   $("#balBody").innerHTML=ps.map(p=>{
     const v=b[p.id]||0,w=Math.abs(v)/max*50;
-    const txt=Math.abs(v)<1?"settled up":(v>0?`is owed ${fmt(v)}`:`owes ${fmt(-v)}`);
+    const txt=Math.abs(v)<1?"settled up":(v>0?`is owed ${fmtD(v)}`:`owes ${fmtD(-v)}`);
     return `<div class="bal"><div class="top"><span class="nm">${esc(p.name)}</span>
-      <span class="v money ${v>0?"pos":v<0?"neg":""}">${Math.abs(v)<1?"—":fmt(v)}</span></div>
+      <span class="v money ${v>0?"pos":v<0?"neg":""}">${Math.abs(v)<1?"—":fmtD(v)}</span></div>
       <div class="track"><div class="fill ${v>=0?"p":"n"}" style="width:${w}%"></div></div>
       <div style="font-size:12px;color:var(--muted);margin-top:6px">${txt}</div></div>`;
   }).join("");
@@ -542,22 +547,26 @@ function renderBal(){
     items().forEach(it=>{paid+=paidMap(it)[p.id]||0;owed+=shareMap(it)[p.id]||0;});
     return `<div class="row" style="padding:13px 14px"><span>${esc(p.name)}</span>
       <span style="text-align:right;font-size:13px;color:var(--muted)">
-      paid <b class="money" style="color:var(--ink)">${fmt(paid)}</b> · share <b class="money" style="color:var(--ink)">${fmt(owed)}</b></span></div>`;
+      paid <b class="money" style="color:var(--ink)">${fmtD(paid)}</b> · share <b class="money" style="color:var(--ink)">${fmtD(owed)}</b></span></div>`;
   }).join("");
 }
-function settleCur(){return (S.settleCur&&(S.settleCur===S.cur||S.settleCur===S.alt))?S.settleCur:S.cur;}
-function toSettle(cents){return settleCur()===S.cur?cents:Math.round(cents*(S.rate||1));}
+function dispCur(){const d=S.dispCur||S.settleCur;return (d&&(d===S.cur||d===S.alt))?d:S.cur;}
+function toDisp(cents){return dispCur()===S.cur?cents:Math.round(cents*(S.rate||1));}
+function fmtD(cents){return fmt(toDisp(cents),dispCur());}
+function otherCur(){return dispCur()===S.cur?S.alt:S.cur;}
+function toOther(cents){return dispCur()===S.cur?Math.round(cents*(S.rate||1)):cents;}
+function curSeg(id){return [S.cur,S.alt].filter(Boolean).map(c=>
+  `<button data-scur="${c}" class="${dispCur()===c?"on":""}">${esc(c)}</button>`).join("");}
 function renderSettle(){
-  const sc=settleCur();
-  $("#settleCurSeg").innerHTML=[S.cur,S.alt].filter(Boolean).map(c=>
-    `<button data-scur="${c}" class="${sc===c?"on":""}">${esc(c)}</button>`).join("");
+  const sc=dispCur();
+  $("#settleCurSeg").innerHTML=curSeg();
   $("#settleNote").innerHTML=sc===S.cur
     ?`Tap a payment once the money actually moves. It gets logged and the balances update.`
-    :`Converted from ${esc(S.cur)} at ${S.rate}. Change the rate under <b>Trip</b>. The payment is still recorded in ${esc(S.cur)}, so the books stay exact.`;
+    :`Converted from ${esc(S.cur)} at ${S.rate}. Change the rate under <b>Trip</b>. Payments are still recorded in ${esc(S.cur)}, so the books stay exact.`;
   const s=settlements(),el=$("#settleBody");
   if(!s.length){el.innerHTML=`<div class="empty"><h3>All square</h3><p>Nobody owes anybody. Enjoy the rest of it.</p></div>`;return;}
   el.innerHTML=s.map(p=>{
-    const main=fmt(toSettle(p.v),sc);
+    const main=fmt(toDisp(p.v),sc);
     const sub=sc===S.cur?"":`<div style="font-size:12px;color:var(--muted)" class="money">${fmt(p.v)}</div>`;
     return `<button class="pay" data-pay="${p.from}|${p.to}|${p.v}" style="width:100%;text-align:left">
     <div class="cat">→</div>
@@ -761,15 +770,17 @@ $("#fab").onclick=()=>openSheet(null);
 $("#logBody").onclick=e=>{const b=e.target.closest("[data-edit]");if(b)openSheet(b.dataset.edit);};
 
 /* record a settlement payment */
-$("#settleCurSeg").onclick=e=>{
+function pickDisp(e){
   const b=e.target.closest("[data-scur]");if(!b)return;
-  S.settleCur=b.dataset.scur;S.metaUpd=now();save();
-};
+  S.dispCur=b.dataset.scur;S.metaUpd=now();save();
+}
+$("#settleCurSeg").onclick=pickDisp;
+$("#dispCurSeg").onclick=pickDisp;
 $("#settleBody").onclick=async e=>{
   const b=e.target.closest("[data-pay]");if(!b)return;
   const [from,to,v]=b.dataset.pay.split("|");
-  const sc=settleCur();
-  const line=sc===S.cur?fmt(+v):`${fmt(toSettle(+v),sc)} (${fmt(+v)})`;
+  const sc=dispCur();
+  const line=sc===S.cur?fmt(+v):`${fmt(toDisp(+v),sc)} (${fmt(+v)})`;
   if(!await ask("Mark as settled?",`${nameOf(from)} paid ${nameOf(to)} ${line}.`,"Mark settled"))return;
   const id=uid();
   S.items[id]={id,kind:"pay",desc:`Settle up — ${nameOf(from)} → ${nameOf(to)}`,cents:+v,cur:S.cur,cat:"🤝",
@@ -821,7 +832,7 @@ $("#fileIn").onchange=e=>{
 function merge(a,b){
   if(!b||!b.people)return a;
   const out={...a};
-  if((b.metaUpd||0)>(a.metaUpd||0)){out.name=b.name;out.cur=b.cur;out.alt=b.alt;out.rate=b.rate;out.settleCur=b.settleCur;out.metaUpd=b.metaUpd;}
+  if((b.metaUpd||0)>(a.metaUpd||0)){out.name=b.name;out.cur=b.cur;out.alt=b.alt;out.rate=b.rate;out.dispCur=b.dispCur;out.metaUpd=b.metaUpd;}
   ["people","items"].forEach(k=>{
     out[k]={...a[k]};
     for(const id in b[k]){
@@ -919,7 +930,7 @@ $("#stopSync").onclick=async()=>{
 };
 
 /* ---------------- shareable text reports ---------------- */
-function money2(cents){const sc=settleCur();return sc===S.cur?fmt(cents):`${fmt(toSettle(cents),sc)} (${fmt(cents)})`;}
+function money2(cents){return dispCur()===S.cur?fmt(cents):`${fmtD(cents)} (${fmt(cents)})`;}
 function head(){
   const tot=items().filter(i=>i.kind!=="pay").reduce((a,i)=>a+i.cents,0);
   return [`${S.name}`,`Total spent: ${money2(tot)}`,""];
