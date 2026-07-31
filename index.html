@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0B2027">
+<title>Ledger — trip expenses</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=Inter+Tight:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0B2027;
+  --hull:#123542;
+  --adriatic:#128C8C;
+  --adriatic-dk:#0C6B6B;
+  --paper:#EDF1F1;
+  --card:#FFFFFF;
+  --line:#D3DCDD;
+  --amber:#F2A81D;
+  --coral:#DB4F45;
+  --muted:#5C7075;
+  --radius:14px;
+  --tab-h:60px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:"Inter Tight",system-ui,-apple-system,sans-serif;
+  font-size:16px;line-height:1.4;
+  overscroll-behavior-y:none;
+  padding-bottom:calc(var(--tab-h) + env(safe-area-inset-bottom));
+}
+h1,h2,h3{font-family:"Bricolage Grotesque","Inter Tight",sans-serif;font-weight:800;letter-spacing:-.02em;margin:0}
+.money{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums;letter-spacing:-.03em}
+button,input,select,textarea{font:inherit;color:inherit}
+button{border:0;background:none;cursor:pointer}
+input,select{
+  width:100%;padding:13px 14px;border:1.5px solid var(--line);border-radius:11px;
+  background:var(--card);font-size:16px;appearance:none;
+}
+input:focus,select:focus,button:focus-visible{outline:2.5px solid var(--amber);outline-offset:1px}
+label.f{display:block;margin-bottom:14px}
+label.f > span{display:block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin-bottom:6px}
+
+/* ---------- header ---------- */
+header{
+  background:var(--ink);color:#fff;
+  padding:calc(env(safe-area-inset-top) + 14px) 18px 16px;
+  position:relative;overflow:hidden;
+}
+header::after{
+  content:"";position:absolute;left:0;right:0;bottom:0;height:8px;
+  background:repeating-linear-gradient(90deg,var(--adriatic) 0 14px,transparent 14px 28px);
+  opacity:.55;
+}
+.hrow{display:flex;justify-content:space-between;align-items:flex-end;gap:12px}
+#tripName{font-size:23px;line-height:1.1}
+.hsub{font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:#8FB3B8;margin-top:4px}
+.htot{text-align:right;flex:none}
+.htot .n{font-size:21px;font-weight:600;color:var(--amber)}
+.htot .l{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#8FB3B8}
+
+/* ---------- layout ---------- */
+main{padding:16px 14px 24px;max-width:640px;margin:0 auto}
+.screen{display:none}.screen.on{display:block}
+.card{background:var(--card);border:1.5px solid var(--line);border-radius:var(--radius);margin-bottom:12px}
+.pad{padding:16px}
+.eyebrow{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin:22px 0 9px}
+.eyebrow:first-child{margin-top:2px}
+.empty{text-align:center;padding:44px 22px;color:var(--muted)}
+.empty h3{font-size:18px;margin-bottom:6px;color:var(--ink)}
+
+/* ---------- expense rows ---------- */
+.day{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:20px 2px 8px}
+.item{display:flex;gap:12px;align-items:center;width:100%;text-align:left;padding:12px 14px;border-bottom:1px solid var(--line)}
+.item:last-child{border-bottom:0}
+.cat{width:40px;height:40px;flex:none;border-radius:11px;background:var(--paper);display:grid;place-items:center;font-size:19px}
+.item .mid{flex:1;min-width:0}
+.item .t{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item .s{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item .amt{flex:none;text-align:right}
+.item .amt .a{font-weight:600}
+.item .amt .b{font-size:12px;color:var(--muted)}
+.pos{color:var(--adriatic-dk)}.neg{color:var(--coral)}
+
+/* ---------- waterline balance bars ---------- */
+.bal{padding:14px 14px 10px;border-bottom:1px solid var(--line)}
+.bal:last-child{border-bottom:0}
+.bal .top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+.bal .nm{font-weight:600}
+.bal .v{font-weight:600;font-size:15px}
+.track{position:relative;height:20px;background:var(--paper);border-radius:5px;overflow:hidden}
+.track::before{content:"";position:absolute;left:50%;top:0;bottom:0;width:1.5px;background:var(--line);z-index:2}
+.fill{position:absolute;top:3px;bottom:3px;border-radius:3px}
+.fill.p{left:50%;background:var(--adriatic)}
+.fill.n{right:50%;background:var(--coral)}
+.legend{display:flex;justify-content:space-between;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:8px 4px 0}
+
+/* ---------- settle ---------- */
+.pay{display:flex;align-items:center;gap:12px;padding:15px 14px;border-bottom:1px solid var(--line)}
+.pay:last-child{border-bottom:0}
+.pay .flow{flex:1;min-width:0}
+.pay .flow .who{font-weight:600;font-size:15px}
+.pay .flow .amt{font-size:20px;font-weight:600;color:var(--ink);margin-top:2px}
+.arrow{color:var(--muted);font-size:13px}
+
+/* ---------- buttons ---------- */
+.btn{
+  display:block;width:100%;padding:15px;border-radius:12px;font-weight:700;font-size:16px;
+  background:var(--ink);color:#fff;text-align:center;
+}
+.btn.teal{background:var(--adriatic)}
+.btn.ghost{background:transparent;border:1.5px solid var(--line);color:var(--ink)}
+.btn.danger{background:transparent;border:1.5px solid var(--coral);color:var(--coral)}
+.btn.sm{padding:11px 14px;font-size:14px;width:auto;display:inline-block}
+.btn:active{transform:scale(.985)}
+.btnrow{display:flex;gap:9px;margin-top:12px}
+.btnrow > *{flex:1;width:auto}
+
+/* ---------- chips ---------- */
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{
+  flex:0 0 auto;white-space:nowrap;
+  padding:10px 14px;border-radius:999px;border:1.5px solid var(--line);
+  background:var(--card);font-size:14px;font-weight:600;min-height:42px;
+  display:inline-flex;align-items:center;gap:6px;line-height:1;
+}
+.chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.chip.cat{padding:9px 12px}
+.chip.cat.on{background:var(--adriatic);border-color:var(--adriatic)}
+.catgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.tile{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
+  padding:10px 2px;border:1.5px solid var(--line);border-radius:12px;background:var(--card);min-height:68px;
+}
+.tile .e{font-size:22px;line-height:1}
+.tile .l{font-size:10px;font-weight:700;color:var(--muted);text-align:center;line-height:1.1}
+.tile.on{background:var(--adriatic);border-color:var(--adriatic)}
+.tile.on .l{color:#fff}
+.filterbar{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 4px;scrollbar-width:none}
+.filterbar::-webkit-scrollbar{display:none}
+.barrow{padding:13px 14px;border-bottom:1px solid var(--line)}
+.barrow:last-child{border-bottom:0}
+.bartop{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:7px;font-size:14px;font-weight:600}
+.bartop .pct{font-size:12px;color:var(--muted);font-weight:500}
+.bartrack{height:8px;background:var(--paper);border-radius:4px;overflow:hidden}
+.barfill{height:100%;background:var(--adriatic);border-radius:4px}
+.shareBtn{
+  width:44px;height:44px;border-radius:50%;flex:none;
+  background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.24);
+  color:#fff;font-size:18px;display:grid;place-items:center;
+}
+.seg{display:flex;border:1.5px solid var(--line);border-radius:11px;overflow:hidden;background:var(--card)}
+.seg button{flex:1;padding:11px 6px;font-size:14px;font-weight:600;color:var(--muted)}
+.seg button.on{background:var(--ink);color:#fff}
+
+/* ---------- add bar + tabs ---------- */
+.addbar{
+  position:fixed;left:0;right:0;bottom:calc(var(--tab-h) + env(safe-area-inset-bottom));
+  padding:10px 14px;z-index:40;pointer-events:none;
+  background:linear-gradient(to top,var(--paper) 55%,transparent);
+}
+.addbar button{pointer-events:auto;max-width:612px;margin:0 auto;box-shadow:0 6px 20px rgba(11,32,39,.24)}
+nav{
+  position:fixed;left:0;right:0;bottom:0;height:calc(var(--tab-h) + env(safe-area-inset-bottom));
+  padding-bottom:env(safe-area-inset-bottom);
+  background:var(--ink);display:flex;z-index:50;
+}
+nav button{flex:1;color:#7C9AA1;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
+nav button .ic{font-size:19px;line-height:1}
+nav button.on{color:#fff}
+nav button.on .ic{filter:drop-shadow(0 0 8px rgba(242,168,29,.8))}
+
+/* ---------- sheet ---------- */
+.sheet{position:fixed;inset:0;z-index:100;display:none}
+.sheet.on{display:block}
+.scrim{position:absolute;inset:0;background:rgba(11,32,39,.5)}
+.panel{
+  position:absolute;left:0;right:0;bottom:0;top:26px;background:var(--paper);
+  border-radius:20px 20px 0 0;display:flex;flex-direction:column;
+  animation:up .22s cubic-bezier(.2,.8,.3,1);
+}
+@keyframes up{from{transform:translateY(4%);opacity:.7}to{transform:none;opacity:1}}
+.phead{display:flex;align-items:center;justify-content:space-between;padding:16px 16px 12px;border-bottom:1.5px solid var(--line);flex:none}
+.phead h2{font-size:19px}
+.x{width:40px;height:40px;border-radius:50%;background:var(--card);border:1.5px solid var(--line);font-size:17px;line-height:1;display:grid;place-items:center;flex:none}
+.pbody{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 16px calc(20px + env(safe-area-inset-bottom))}
+.pfoot{flex:none;padding:12px 16px calc(12px + env(safe-area-inset-bottom));border-top:1.5px solid var(--line);background:var(--card)}
+.big{font-size:34px !important;font-weight:600;font-family:"IBM Plex Mono",monospace;text-align:center;padding:16px 12px !important;letter-spacing:-.02em}
+.split2{display:flex;gap:9px}.split2>*{flex:1}
+.row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:0}
+.note{font-size:13px;color:var(--muted);line-height:1.45;margin:8px 2px 0}
+.warn{background:#FDF3DC;border:1.5px solid var(--amber);border-radius:11px;padding:12px 14px;font-size:13px;line-height:1.45;margin-bottom:14px}
+.dialog{
+  position:absolute;left:18px;right:18px;top:50%;transform:translateY(-50%);
+  max-width:400px;margin:0 auto;background:var(--paper);border-radius:18px;padding:22px 20px;
+  box-shadow:0 20px 50px rgba(11,32,39,.35);
+}
+.dialog h2{font-size:19px;margin-bottom:8px}
+#toast{
+  position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--tab-h) + 76px);
+  background:var(--ink);color:#fff;padding:12px 18px;border-radius:11px;font-size:14px;font-weight:600;
+  z-index:200;opacity:0;pointer-events:none;transition:opacity .2s;max-width:88vw;text-align:center;
+}
+#toast.on{opacity:1}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted);display:inline-block;margin-right:6px}
+.dot.live{background:var(--adriatic)}
+@media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hrow">
+    <div>
+      <h1 id="tripName">Trip</h1>
+      <div class="hsub" id="tripSub">no expenses yet</div>
+    </div>
+    <div class="htot">
+      <div class="n money" id="tripTotal">0</div>
+      <div class="l">total spent</div>
+    </div>
+    <button class="shareBtn" id="shareBtn" aria-label="Share">↗</button>
+  </div>
+</header>
+
+<main>
+  <!-- EXPENSES -->
+  <section class="screen on" id="s-log">
+    <div class="filterbar" id="filterBar"></div>
+    <div id="logBody"></div>
+  </section>
+
+  <!-- BALANCES -->
+  <section class="screen" id="s-bal">
+    <div class="eyebrow">Where the money went</div>
+    <div class="card" id="catBody"></div>
+    <div class="eyebrow">Where everyone floats</div>
+    <div class="card" id="balBody"></div>
+    <div class="legend"><span>◀ owes the group</span><span>is owed ▶</span></div>
+    <div class="eyebrow">Per person</div>
+    <div class="card" id="detailBody"></div>
+  </section>
+
+  <!-- SETTLE -->
+  <section class="screen" id="s-settle">
+    <div class="eyebrow">Settle in</div>
+    <div class="seg" id="settleCurSeg"></div>
+    <div class="eyebrow">Fewest payments to zero out</div>
+    <div class="card" id="settleBody"></div>
+    <p class="note" id="settleNote"></p>
+  </section>
+
+  <!-- TRIP -->
+  <section class="screen" id="s-trip">
+    <div class="eyebrow">Trip</div>
+    <div class="card pad">
+      <label class="f"><span>Trip name</span><input id="setName" placeholder="Croatia 2026"></label>
+      <div class="split2">
+        <label class="f"><span>Currency</span><input id="setCur" maxlength="4" placeholder="EUR"></label>
+        <label class="f"><span>Second currency</span><input id="setAlt" maxlength="4" placeholder="USD"></label>
+      </div>
+      <label class="f"><span>1 <b id="curA">EUR</b> = ? <b id="curB">USD</b></span><input id="setRate" inputmode="decimal" placeholder="1.08"></label>
+      <button class="btn teal" id="saveTrip">Save trip</button>
+    </div>
+
+    <div class="eyebrow">People</div>
+    <div class="card" id="peopleBody"></div>
+    <div class="card pad" style="margin-top:-2px">
+      <div class="split2">
+        <input id="newPerson" placeholder="Add a name" autocomplete="off">
+        <button class="btn teal" style="flex:0 0 88px" id="addPerson">Add</button>
+      </div>
+    </div>
+
+    <div class="eyebrow">Sync across phones</div>
+    <div class="card pad">
+      <div id="syncState" class="row" style="padding-top:0"><span><span class="dot" id="syncDot"></span><span id="syncLabel">Not syncing — this phone only</span></span></div>
+      <div id="syncOff">
+        <p class="note" style="margin-bottom:12px">Sync uses a free JSONBin.io bin. One person sets it up and shares the trip code; everyone else pastes it in.</p>
+        <div class="btnrow">
+          <button class="btn ghost sm" id="openHost">Start sync</button>
+          <button class="btn ghost sm" id="openJoin">Enter code</button>
+        </div>
+      </div>
+      <div id="syncOn" style="display:none">
+        <div class="btnrow">
+          <button class="btn teal sm" id="shareCode">Share code</button>
+          <button class="btn ghost sm" id="pullNow">Sync now</button>
+        </div>
+        <button class="btn danger sm" style="width:100%;margin-top:9px" id="stopSync">Stop syncing</button>
+      </div>
+    </div>
+
+    <div class="eyebrow">Backup</div>
+    <div class="card pad">
+      <div class="btnrow">
+        <button class="btn ghost sm" id="exportJson">Export file</button>
+        <button class="btn ghost sm" id="importJson">Import file</button>
+      </div>
+      <button class="btn danger sm" style="width:100%;margin-top:9px" id="wipe">Erase this trip</button>
+      <input type="file" id="fileIn" accept=".json,application/json" style="display:none">
+    </div>
+    <p class="note" style="margin-bottom:40px">Add to Home Screen from your browser's share menu to run it fullscreen like an app.</p>
+  </section>
+</main>
+
+<div class="addbar"><button class="btn" id="fab">+ Add expense</button></div>
+
+<nav>
+  <button data-tab="log" class="on"><span class="ic">🧾</span>Log</button>
+  <button data-tab="bal"><span class="ic">⚖️</span>Balances</button>
+  <button data-tab="settle"><span class="ic">🤝</span>Settle</button>
+  <button data-tab="trip"><span class="ic">⚙️</span>Trip</button>
+</nav>
+
+<!-- EXPENSE SHEET -->
+<div class="sheet" id="sheet">
+  <div class="scrim"></div>
+  <div class="panel">
+    <div class="phead"><h2 id="sheetTitle">Add expense</h2><button class="x" id="closeSheet" aria-label="Close">✕</button></div>
+    <div class="pbody">
+      <input class="big" id="fAmt" inputmode="decimal" placeholder="0.00">
+      <div class="seg" id="fCurSeg" style="margin:10px 0 18px"></div>
+      <div class="note" id="fConv" style="text-align:center;margin:-10px 0 18px;min-height:18px"></div>
+
+      <label class="f"><span>What for</span><input id="fDesc" placeholder="Dinner in Hvar" autocomplete="off"></label>
+      <label class="f"><span>Category</span></label>
+      <div class="catgrid" id="fCats" style="margin:-8px 0 18px"></div>
+      <label class="f"><span>Paid by — tap more than one if two cards were used</span></label>
+      <div class="chips" id="fPayer" style="margin:-8px 0 10px"></div>
+      <div id="fPaidAmts" style="margin-bottom:18px"></div>
+
+      <label class="f"><span>Split between</span></label>
+      <div class="chips" id="fSplit" style="margin:-8px 0 10px"></div>
+      <div class="btnrow" style="margin-top:0">
+        <button class="btn ghost sm" id="allOn">Everyone</button>
+        <button class="btn ghost sm" id="allOff">Clear</button>
+      </div>
+
+      <div class="eyebrow">How to split</div>
+      <div class="seg" id="fMode">
+        <button data-m="equal" class="on">Evenly</button>
+        <button data-m="shares">By shares</button>
+        <button data-m="exact">Exact amounts</button>
+      </div>
+      <div id="fCustom" style="margin-top:14px"></div>
+
+      <label class="f" style="margin-top:18px"><span>Date</span><input type="date" id="fDate"></label>
+      <button class="btn danger" id="delItem" style="display:none;margin-bottom:10px">Delete this expense</button>
+    </div>
+    <div class="pfoot"><button class="btn teal" id="saveItem">Save expense</button></div>
+  </div>
+</div>
+
+<!-- SYNC SHEET -->
+<div class="sheet" id="sheet2">
+  <div class="scrim"></div>
+  <div class="panel" style="top:auto;height:auto;max-height:90%">
+    <div class="phead"><h2 id="sheet2Title">Sync</h2><button class="x" id="closeSheet2" aria-label="Close">✕</button></div>
+    <div class="pbody" id="sheet2Body"></div>
+  </div>
+</div>
+
+<!-- CONFIRM DIALOG -->
+<div class="sheet" id="ask">
+  <div class="scrim"></div>
+  <div class="dialog">
+    <h2 id="askT">Are you sure?</h2>
+    <p class="note" id="askM" style="margin:0 0 18px"></p>
+    <div class="btnrow" style="margin:0">
+      <button class="btn ghost" id="askNo">Cancel</button>
+      <button class="btn teal" id="askYes">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+"use strict";
+const CATS=[["🍽️","Food"],["🍸","Drinks"],["🛒","Groceries"],["⛽","Fuel"],["⚓","Mooring"],["🛥️","Charter"],["🚕","Transport"],["🏨","Lodging"],["🎟️","Activity"],["💶","Other"]];
+const LS="tripsplit.v1", LSYNC="tripsplit.sync.v1";
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+const now=()=>Date.now();
+const $=s=>document.querySelector(s);
+
+/* ---------------- state ---------------- */
+let S=load();
+let sync=JSON.parse(localStorage.getItem(LSYNC)||"null");
+let draft=null, tab="log", pushTimer=null, filter="all";
+
+function blank(){
+  return {tripId:uid(),name:"Trip",cur:"EUR",alt:"USD",rate:1.08,metaUpd:now(),people:{},items:{}};
+}
+function load(){
+  try{const r=JSON.parse(localStorage.getItem(LS));if(r&&r.people)return r;}catch(e){}
+  return blank();
+}
+function save(){localStorage.setItem(LS,JSON.stringify(S));render();queuePush();}
+
+/* ---------------- money ---------------- */
+const C=n=>Math.round(n*100);
+function fmt(cents,cur){
+  const s=(Math.abs(cents)/100).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,",");
+  return (cents<0?"-":"")+(cur===false?"":sym(cur||S.cur))+s;
+}
+function sym(c){return ({EUR:"€",USD:"$",GBP:"£",HRK:"kn"})[String(c).toUpperCase()]||(c+" ");}
+const people=()=>Object.values(S.people).filter(p=>!p.del).sort((a,b)=>a.made-b.made);
+const items=()=>Object.values(S.items).filter(i=>!i.del).sort((a,b)=>b.date.localeCompare(a.date)||b.made-a.made);
+
+/* ---------------- split math (integer cents) ---------------- */
+/* who actually put money down — {personId: cents}. Falls back to the old single payer field. */
+function paidMap(it){
+  if(it.paid&&Object.keys(it.paid).length)return it.paid;
+  return it.payer?{[it.payer]:it.cents}:{};
+}
+function shareMap(it){
+  const out={},ids=(it.with||[]).filter(id=>S.people[id]);
+  if(!ids.length)return out;
+  if(it.mode==="exact"){ids.forEach(id=>out[id]=it.parts?.[id]||0);return out;}
+  let w={},tw=0;
+  ids.forEach(id=>{const v=it.mode==="shares"?Math.max(0,it.parts?.[id]??1):1;w[id]=v;tw+=v;});
+  if(tw<=0){ids.forEach(id=>out[id]=0);return out;}
+  let used=0;const raw=ids.map(id=>({id,x:it.cents*w[id]/tw}));
+  raw.forEach(r=>{out[r.id]=Math.floor(r.x);used+=out[r.id];});
+  let rem=it.cents-used;
+  // hand out leftover pennies deterministically, rotated per item so it evens out
+  const seed=[...it.id].reduce((a,c)=>a+c.charCodeAt(0),0);
+  const order=raw.sort((a,b)=>(b.x%1)-(a.x%1)||a.id.localeCompare(b.id));
+  for(let k=0;rem>0;k++,rem--)out[order[(k+seed)%order.length].id]++;
+  return out;
+}
+function balances(){
+  const b={};people().forEach(p=>b[p.id]=0);
+  items().forEach(it=>{
+    const pm=paidMap(it);
+    if(!Object.keys(pm).length||Object.keys(pm).some(id=>b[id]===undefined))return;
+    for(const id in pm)b[id]+=pm[id];
+    const m=shareMap(it);
+    for(const id in m) if(b[id]!==undefined) b[id]-=m[id];
+  });
+  return b;
+}
+function settlements(){
+  const b=balances();
+  const cr=[],db=[];
+  for(const id in b){if(b[id]>0)cr.push({id,v:b[id]});else if(b[id]<0)db.push({id,v:-b[id]});}
+  cr.sort((a,b)=>b.v-a.v);db.sort((a,b)=>b.v-a.v);
+  const out=[];let i=0,j=0;
+  while(i<db.length&&j<cr.length){
+    const v=Math.min(db[i].v,cr[j].v);
+    if(v>0)out.push({from:db[i].id,to:cr[j].id,v});
+    db[i].v-=v;cr[j].v-=v;
+    if(db[i].v<1)i++;if(cr[j].v<1)j++;
+  }
+  return out;
+}
+const nameOf=id=>S.people[id]?.name||"—";
+
+/* ---------------- render ---------------- */
+function render(){
+  $("#tripName").textContent=S.name||"Trip";
+  const list=items(),spend=list.filter(i=>i.kind!=="pay");
+  const tot=spend.reduce((a,i)=>a+i.cents,0);
+  $("#tripTotal").textContent=fmt(tot);
+  const n=people().length;
+  $("#tripSub").textContent=n?`${n} ${n===1?"person":"people"} · ${spend.length} ${spend.length===1?"expense":"expenses"}`:"add people to start";
+  renderLog(list);renderCatBreak();renderFilter();renderBal();renderSettle();renderPeople();renderSync();
+  $("#setName").value=S.name||"";$("#setCur").value=S.cur;$("#setAlt").value=S.alt||"";
+  $("#setRate").value=S.rate;$("#curA").textContent=S.cur;$("#curB").textContent=S.alt||"—";
+}
+function dayLabel(d){
+  const t=new Date(),iso=x=>x.toISOString().slice(0,10);
+  if(d===iso(t))return "Today";
+  const y=new Date(t.getTime()-864e5);if(d===iso(y))return "Yesterday";
+  return new Date(d+"T12:00").toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"});
+}
+const catName=e=>(CATS.find(c=>c[0]===e)||[null,"Other"])[1];
+function catTotals(){
+  const m={};
+  items().filter(i=>i.kind!=="pay").forEach(i=>{const c=i.cat||"💶";m[c]=(m[c]||0)+i.cents;});
+  return Object.entries(m).sort((a,b)=>b[1]-a[1]);
+}
+function renderFilter(){
+  const cats=catTotals(),el=$("#filterBar");
+  if(!cats.length){el.innerHTML="";return;}
+  el.innerHTML=`<button class="chip ${filter==="all"?"on":""}" data-f="all">All</button>`+
+    cats.map(([c,v])=>`<button class="chip ${filter===c?"on":""}" data-f="${c}">${c} ${esc(catName(c))}</button>`).join("");
+}
+function renderCatBreak(){
+  const cats=catTotals(),tot=cats.reduce((a,c)=>a+c[1],0),el=$("#catBody");
+  if(!tot){el.innerHTML=`<div class="empty" style="padding:26px">Nothing logged yet.</div>`;return;}
+  el.innerHTML=cats.map(([c,v])=>`<button class="barrow" style="width:100%;text-align:left" data-jump="${c}">
+    <div class="bartop"><span>${c} ${esc(catName(c))}</span>
+      <span><span class="money">${fmt(v)}</span> <span class="pct">${Math.round(v/tot*100)}%</span></span></div>
+    <div class="bartrack"><div class="barfill" style="width:${v/cats[0][1]*100}%"></div></div></button>`).join("");
+}
+function renderLog(all){
+  const el=$("#logBody");
+  const list=filter==="all"?all:all.filter(i=>(i.cat||"💶")===filter);
+  if(!people().length){el.innerHTML=`<div class="empty"><h3>Nobody aboard yet</h3><p>Add the people on the trip under <b>Trip</b>, then start logging what everyone pays for.</p></div>`;return;}
+  if(!list.length){el.innerHTML=`<div class="empty"><h3>${filter==="all"?"Clean slate":"Nothing in "+catName(filter)}</h3><p>${filter==="all"?"Tap <b>Add expense</b> the moment someone pays for something. Takes about five seconds.":"Tap <b>All</b> to see everything again."}</p></div>`;return;}
+  let h="",day="";
+  list.forEach(it=>{
+    if(it.date!==day){day=it.date;h+=`<div class="day">${dayLabel(day)}</div><div class="card">`;}
+    const m=shareMap(it),who=Object.keys(m).length;
+    const pn=Object.keys(paidMap(it));
+    const payTxt=pn.length>1?`${pn.length} people paid`:`${nameOf(pn[0])} paid`;
+    const sub=it.kind==="pay"?`${nameOf(it.payer)} → ${nameOf(it.with[0])}`
+      :`${payTxt} · split ${who===people().length?"evenly":`${who} way${who===1?"":"s"}`}`;
+    const alt=S.alt&&S.rate?`<div class="b money">${fmt(Math.round(it.cents*S.rate),S.alt)}</div>`:"";
+    h+=`<button class="item" data-edit="${it.id}">
+      <div class="cat">${it.kind==="pay"?"🤝":it.cat||"💶"}</div>
+      <div class="mid"><div class="t">${esc(it.desc||"Expense")}</div><div class="s">${esc(sub)}</div></div>
+      <div class="amt"><div class="a money">${fmt(it.cents)}</div>${alt}</div></button>`;
+    const nx=list[list.indexOf(it)+1];
+    if(!nx||nx.date!==day)h+=`</div>`;
+  });
+  el.innerHTML=h;
+}
+function renderBal(){
+  const b=balances(),ps=people();
+  if(!ps.length){$("#balBody").innerHTML=`<div class="empty">Add people first.</div>`;$("#detailBody").innerHTML="";return;}
+  const max=Math.max(1,...ps.map(p=>Math.abs(b[p.id]||0)));
+  $("#balBody").innerHTML=ps.map(p=>{
+    const v=b[p.id]||0,w=Math.abs(v)/max*50;
+    const txt=Math.abs(v)<1?"settled up":(v>0?`is owed ${fmt(v)}`:`owes ${fmt(-v)}`);
+    return `<div class="bal"><div class="top"><span class="nm">${esc(p.name)}</span>
+      <span class="v money ${v>0?"pos":v<0?"neg":""}">${Math.abs(v)<1?"—":fmt(v)}</span></div>
+      <div class="track"><div class="fill ${v>=0?"p":"n"}" style="width:${w}%"></div></div>
+      <div style="font-size:12px;color:var(--muted);margin-top:6px">${txt}</div></div>`;
+  }).join("");
+  $("#detailBody").innerHTML=ps.map(p=>{
+    let paid=0,owed=0;
+    items().forEach(it=>{paid+=paidMap(it)[p.id]||0;owed+=shareMap(it)[p.id]||0;});
+    return `<div class="row" style="padding:13px 14px"><span>${esc(p.name)}</span>
+      <span style="text-align:right;font-size:13px;color:var(--muted)">
+      paid <b class="money" style="color:var(--ink)">${fmt(paid)}</b> · share <b class="money" style="color:var(--ink)">${fmt(owed)}</b></span></div>`;
+  }).join("");
+}
+function settleCur(){return (S.settleCur&&(S.settleCur===S.cur||S.settleCur===S.alt))?S.settleCur:S.cur;}
+function toSettle(cents){return settleCur()===S.cur?cents:Math.round(cents*(S.rate||1));}
+function renderSettle(){
+  const sc=settleCur();
+  $("#settleCurSeg").innerHTML=[S.cur,S.alt].filter(Boolean).map(c=>
+    `<button data-scur="${c}" class="${sc===c?"on":""}">${esc(c)}</button>`).join("");
+  $("#settleNote").innerHTML=sc===S.cur
+    ?`Tap a payment once the money actually moves. It gets logged and the balances update.`
+    :`Converted from ${esc(S.cur)} at ${S.rate}. Change the rate under <b>Trip</b>. The payment is still recorded in ${esc(S.cur)}, so the books stay exact.`;
+  const s=settlements(),el=$("#settleBody");
+  if(!s.length){el.innerHTML=`<div class="empty"><h3>All square</h3><p>Nobody owes anybody. Enjoy the rest of it.</p></div>`;return;}
+  el.innerHTML=s.map(p=>{
+    const main=fmt(toSettle(p.v),sc);
+    const sub=sc===S.cur?"":`<div style="font-size:12px;color:var(--muted)" class="money">${fmt(p.v)}</div>`;
+    return `<button class="pay" data-pay="${p.from}|${p.to}|${p.v}" style="width:100%;text-align:left">
+    <div class="cat">→</div>
+    <div class="flow"><div class="who">${esc(nameOf(p.from))} <span class="arrow">pays</span> ${esc(nameOf(p.to))}</div>
+    <div class="amt money">${main}</div>${sub}</div>
+    <div class="chip">Settle</div></button>`;}).join("");
+}
+function renderPeople(){
+  const ps=people();
+  $("#peopleBody").innerHTML=ps.length?ps.map(p=>`<div class="row" style="padding:13px 14px">
+    <span>${esc(p.name)}</span><button class="btn danger sm" data-rm="${p.id}">Remove</button></div>`).join("")
+    :`<div class="empty" style="padding:26px">Nobody added yet.</div>`;
+}
+function esc(s){return String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+/* native confirm() is blocked inside sandboxed webviews — use our own */
+let askRes=null;
+function ask(title,msg,yes){
+  $("#askT").textContent=title;$("#askM").textContent=msg||"";
+  $("#askYes").textContent=yes||"Confirm";
+  $("#ask").classList.add("on");
+  return new Promise(r=>{askRes=r;});
+}
+function askDone(v){$("#ask").classList.remove("on");const r=askRes;askRes=null;if(r)r(v);}
+$("#askYes").onclick=()=>askDone(true);
+$("#askNo").onclick=()=>askDone(false);
+$("#ask").querySelector(".scrim").onclick=()=>askDone(false);
+function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("on");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("on"),2200);}
+
+/* ---------------- tabs ---------------- */
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{
+  tab=b.dataset.tab;
+  document.querySelectorAll("nav button").forEach(x=>x.classList.toggle("on",x===b));
+  document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("on",s.id==="s-"+tab));
+  document.querySelector(".addbar").style.display=(tab==="log")?"block":"none";
+  window.scrollTo(0,0);
+});
+
+/* ---------------- expense sheet ---------------- */
+function openSheet(id){
+  if(!people().length){toast("Add people under Trip first");return;}
+  const ex=id?S.items[id]:null;
+  draft=ex?JSON.parse(JSON.stringify(ex)):{
+    id:uid(),kind:"exp",desc:"",cents:0,cur:S.cur,cat:"🍽️",
+    payers:[people()[0].id],paid:{},
+    with:people().map(p=>p.id),mode:"equal",parts:{},
+    date:new Date().toISOString().slice(0,10),made:now(),upd:now()
+  };
+  if(!draft.payers||!draft.payers.length){
+    const pm=paidMap(draft);
+    draft.payers=Object.keys(pm).filter(id=>S.people[id]&&!S.people[id].del);
+    draft.paid={...pm};
+    if(!draft.payers.length)draft.payers=[people()[0].id];
+  }
+  draft.paidTouched=Object.keys(draft.paid||{}).length>1;
+  $("#sheetTitle").textContent=ex?"Edit expense":"Add expense";
+  $("#delItem").style.display=ex?"block":"none";
+  $("#fAmt").value=draft.cents?(draft.cents/100).toFixed(2):"";
+  $("#fDesc").value=draft.desc||"";$("#fDate").value=draft.date;
+  paintSheet();$("#sheet").classList.add("on");
+  if(!ex)setTimeout(()=>$("#fAmt").focus(),260);
+}
+function closeSheet(){$("#sheet").classList.remove("on");draft=null;}
+function paintSheet(){
+  const ps=people();
+  $("#fCurSeg").innerHTML=[S.cur,S.alt].filter(Boolean).map(c=>
+    `<button data-cur="${c}" class="${draft.cur===c?"on":""}">${esc(c)}</button>`).join("");
+  $("#fCats").innerHTML=CATS.map(([e,n])=>
+    `<button class="tile ${draft.cat===e?"on":""}" data-cat="${e}"><span class="e">${e}</span><span class="l">${esc(n)}</span></button>`).join("");
+  $("#fPayer").innerHTML=ps.map(p=>
+    `<button class="chip ${draft.payers.includes(p.id)?"on":""}" data-payer="${p.id}">${esc(p.name)}</button>`).join("");
+  paintPaid();
+  $("#fSplit").innerHTML=ps.map(p=>
+    `<button class="chip ${draft.with.includes(p.id)?"on":""}" data-split="${p.id}">${esc(p.name)}</button>`).join("");
+  document.querySelectorAll("#fMode button").forEach(b=>b.classList.toggle("on",b.dataset.m===draft.mode));
+  paintCustom();paintConv();
+}
+function evenPay(){
+  const t=baseCents(),n=draft.payers.length;
+  if(!n)return;
+  const base=Math.floor(t/n);let rem=t-base*n;
+  draft.paid={};
+  draft.payers.forEach((id,i)=>draft.paid[id]=base+(i<rem?1:0));
+  draft.paidTouched=false;
+}
+function paidSum(){
+  const n=$("#paidSum");if(!n)return;
+  const s=draft.payers.reduce((a,id)=>a+(draft.paid[id]||0),0),t=baseCents();
+  n.innerHTML=s===t
+    ?`Adds up to the total. ✓`
+    :`<b style="color:var(--coral)">${fmt(Math.abs(t-s))} ${s<t?"still unassigned":"over the total"}</b>`;
+}
+function paintPaid(){
+  const el=$("#fPaidAmts");
+  if(draft.payers.length<2){el.innerHTML="";return;}
+  el.innerHTML=`<div class="card pad" style="margin:0">
+    <div class="note" style="margin:0 0 10px">How much each card covered, in ${esc(S.cur)}.</div>
+    ${draft.payers.map(id=>`<div class="row" style="padding:9px 0"><span style="flex:1">${esc(nameOf(id))}</span>
+      <input data-paid="${id}" inputmode="decimal" style="width:120px;text-align:right;padding:9px 11px"
+        value="${draft.paid[id]?(draft.paid[id]/100).toFixed(2):""}" placeholder="0.00"></div>`).join("")}
+    <div class="note" id="paidSum"></div>
+    <button class="btn ghost sm" style="width:100%;margin-top:12px" id="evenPay">Split the payment evenly</button></div>`;
+  el.querySelectorAll("input[data-paid]").forEach(i=>i.oninput=()=>{
+    draft.paid[i.dataset.paid]=C(parseFloat(i.value.replace(",","."))||0);
+    draft.paidTouched=true;paidSum();
+  });
+  $("#evenPay").onclick=()=>{evenPay();paintPaid();};
+  paidSum();
+}
+function paintConv(){
+  const c=readAmt();let t="";
+  if(c&&S.rate&&S.alt){
+    t=draft.cur===S.cur?`≈ ${fmt(Math.round(c*S.rate),S.alt)}`:`≈ ${fmt(Math.round(c/S.rate),S.cur)} — stored in ${S.cur}`;
+  }
+  $("#fConv").textContent=t;
+}
+function readAmt(){const v=parseFloat(($("#fAmt").value||"").replace(",","."));return isFinite(v)?C(v):0;}
+function baseCents(){const c=readAmt();return draft.cur===S.cur?c:Math.round(c/(S.rate||1));}
+function paintCustom(){
+  const el=$("#fCustom");
+  if(draft.mode==="equal"){el.innerHTML="";return;}
+  const ids=draft.with.filter(id=>S.people[id]);
+  const lbl=draft.mode==="shares"?"shares":`amount (${S.cur})`;
+  el.innerHTML=`<div class="card pad" style="margin:0">${ids.map(id=>`
+    <div class="row" style="padding:9px 0"><span style="flex:1">${esc(nameOf(id))}</span>
+    <input data-part="${id}" inputmode="decimal" style="width:110px;text-align:right;padding:9px 11px"
+      value="${draft.mode==="shares"?(draft.parts[id]??1):((draft.parts[id]||0)/100||"")}" placeholder="${lbl}"></div>`).join("")}
+    <div class="note" id="partSum"></div></div>`;
+  el.querySelectorAll("input").forEach(i=>i.oninput=()=>{
+    const v=parseFloat(i.value.replace(",","."))||0;
+    draft.parts[i.dataset.part]=draft.mode==="shares"?v:C(v);
+    sumNote();
+  });
+  sumNote();
+}
+function sumNote(){
+  const n=$("#partSum");if(!n)return;
+  if(draft.mode==="exact"){
+    const s=draft.with.reduce((a,id)=>a+(draft.parts[id]||0),0),t=baseCents();
+    n.innerHTML=s===t?`Adds up. ✓`:`<b style="color:var(--coral)">${fmt(Math.abs(t-s))} ${s<t?"left to assign":"over the total"}</b>`;
+  }else{
+    const tw=draft.with.reduce((a,id)=>a+(draft.parts[id]??1),0);
+    n.textContent=`${tw} shares total`;
+  }
+}
+$("#fAmt").oninput=()=>{paintConv();sumNote();if(!draft.paidTouched){evenPay();paintPaid();}else paidSum();};
+$("#fCurSeg").onclick=e=>{const b=e.target.closest("[data-cur]");if(b){draft.cur=b.dataset.cur;if(!draft.paidTouched)evenPay();paintSheet();}};
+$("#fCats").onclick=e=>{const b=e.target.closest("[data-cat]");if(b){draft.cat=b.dataset.cat;paintSheet();}};
+$("#fPayer").onclick=e=>{
+  const b=e.target.closest("[data-payer]");if(!b)return;
+  const id=b.dataset.payer;
+  if(draft.payers.includes(id)){
+    if(draft.payers.length===1)return;
+    draft.payers=draft.payers.filter(x=>x!==id);
+  }else draft.payers=[...draft.payers,id];
+  evenPay();paintSheet();
+};
+$("#fSplit").onclick=e=>{const b=e.target.closest("[data-split]");if(!b)return;
+  const id=b.dataset.split;draft.with=draft.with.includes(id)?draft.with.filter(x=>x!==id):[...draft.with,id];paintSheet();};
+$("#allOn").onclick=()=>{draft.with=people().map(p=>p.id);paintSheet();};
+$("#allOff").onclick=()=>{draft.with=[];paintSheet();};
+$("#fMode").onclick=e=>{const b=e.target.closest("[data-m]");if(!b)return;
+  draft.mode=b.dataset.m;
+  if(draft.mode==="shares")draft.with.forEach(id=>{if(typeof draft.parts[id]!=="number"||draft.parts[id]>50)draft.parts[id]=1;});
+  paintSheet();};
+$("#closeSheet").onclick=closeSheet;
+$("#sheet").querySelector(".scrim").onclick=e=>e.stopPropagation();
+$("#saveItem").onclick=()=>{
+  const c=baseCents();
+  if(c<=0){toast("Enter an amount");$("#fAmt").focus();return;}
+  if(!draft.with.length){toast("Pick who it's split between");return;}
+  if(draft.mode==="exact"){
+    const s=draft.with.reduce((a,id)=>a+(draft.parts[id]||0),0);
+    if(s!==c){toast("Exact amounts must add up to the total");return;}
+  }
+  if(draft.payers.length>1){
+    const s=draft.payers.reduce((a,id)=>a+(draft.paid[id]||0),0);
+    if(s!==c){toast("Payer amounts must add up to the total");return;}
+    draft.paid=Object.fromEntries(draft.payers.map(id=>[id,draft.paid[id]||0]));
+  }else draft.paid={[draft.payers[0]]:c};
+  draft.payer=draft.payers[0];
+  delete draft.paidTouched;
+  draft.cents=c;draft.desc=$("#fDesc").value.trim();draft.date=$("#fDate").value||draft.date;draft.upd=now();
+  S.items[draft.id]=draft;closeSheet();save();toast("Saved");
+};
+$("#delItem").onclick=async()=>{
+  const d=draft;
+  if(!await ask("Delete this expense?",d.desc||"","Delete"))return;
+  S.items[d.id]={...d,del:true,upd:now()};closeSheet();save();toast("Deleted");
+};
+$("#filterBar").onclick=e=>{
+  const b=e.target.closest("[data-f]");if(!b)return;
+  filter=b.dataset.f;render();window.scrollTo(0,0);
+};
+$("#catBody").onclick=e=>{
+  const b=e.target.closest("[data-jump]");if(!b)return;
+  filter=b.dataset.jump;
+  document.querySelector('nav button[data-tab="log"]').click();
+  render();
+};
+$("#fab").onclick=()=>openSheet(null);
+$("#logBody").onclick=e=>{const b=e.target.closest("[data-edit]");if(b)openSheet(b.dataset.edit);};
+
+/* record a settlement payment */
+$("#settleCurSeg").onclick=e=>{
+  const b=e.target.closest("[data-scur]");if(!b)return;
+  S.settleCur=b.dataset.scur;S.metaUpd=now();save();
+};
+$("#settleBody").onclick=async e=>{
+  const b=e.target.closest("[data-pay]");if(!b)return;
+  const [from,to,v]=b.dataset.pay.split("|");
+  const sc=settleCur();
+  const line=sc===S.cur?fmt(+v):`${fmt(toSettle(+v),sc)} (${fmt(+v)})`;
+  if(!await ask("Mark as settled?",`${nameOf(from)} paid ${nameOf(to)} ${line}.`,"Mark settled"))return;
+  const id=uid();
+  S.items[id]={id,kind:"pay",desc:`Settle up — ${nameOf(from)} → ${nameOf(to)}`,cents:+v,cur:S.cur,cat:"🤝",
+    payer:from,payers:[from],paid:{[from]:+v},with:[to],mode:"exact",parts:{[to]:+v},
+    date:new Date().toISOString().slice(0,10),made:now(),upd:now()};
+  save();toast("Marked settled");
+};
+
+/* ---------------- trip settings ---------------- */
+$("#saveTrip").onclick=()=>{
+  S.name=$("#setName").value.trim()||"Trip";
+  S.cur=($("#setCur").value.trim()||"EUR").toUpperCase();
+  S.alt=$("#setAlt").value.trim().toUpperCase();
+  S.rate=parseFloat($("#setRate").value)||1;
+  S.metaUpd=now();save();toast("Trip saved");
+};
+function addPerson(){
+  const n=$("#newPerson").value.trim();if(!n)return;
+  const id=uid();S.people[id]={id,name:n,made:now(),upd:now()};
+  $("#newPerson").value="";save();
+}
+$("#addPerson").onclick=addPerson;
+$("#newPerson").onkeydown=e=>{if(e.key==="Enter")addPerson();};
+$("#peopleBody").onclick=async e=>{
+  const b=e.target.closest("[data-rm]");if(!b)return;
+  const id=b.dataset.rm;
+  const used=items().some(i=>i.payer===id||i.with.includes(id));
+  if(used&&!await ask(`Remove ${nameOf(id)}?`,"They're on existing expenses. Those stay in the log and still count toward balances.","Remove"))return;
+  S.people[id]={...S.people[id],del:true,upd:now()};save();
+};
+$("#wipe").onclick=async()=>{
+  if(!await ask("Erase this trip?","Every expense and person on this phone. This cannot be undone.","Erase everything"))return;
+  S=blank();localStorage.removeItem(LSYNC);sync=null;save();toast("Erased");
+};
+$("#exportJson").onclick=()=>{
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,2)],{type:"application/json"}));
+  a.download=(S.name||"trip").replace(/\W+/g,"-").toLowerCase()+"-expenses.json";a.click();
+};
+$("#importJson").onclick=()=>$("#fileIn").click();
+$("#fileIn").onchange=e=>{
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{try{S=merge(S,JSON.parse(r.result));save();toast("Imported and merged");}catch(x){toast("That file didn't parse");}};
+  r.readAsText(f);e.target.value="";
+};
+
+/* ---------------- merge (last-write-wins per record) ---------------- */
+function merge(a,b){
+  if(!b||!b.people)return a;
+  const out={...a};
+  if((b.metaUpd||0)>(a.metaUpd||0)){out.name=b.name;out.cur=b.cur;out.alt=b.alt;out.rate=b.rate;out.settleCur=b.settleCur;out.metaUpd=b.metaUpd;}
+  ["people","items"].forEach(k=>{
+    out[k]={...a[k]};
+    for(const id in b[k]){
+      const mine=a[k][id];
+      if(!mine||(b[k][id].upd||0)>(mine.upd||0))out[k][id]=b[k][id];
+    }
+  });
+  return out;
+}
+
+/* ---------------- JSONBin sync ---------------- */
+function renderSync(){
+  const on=!!sync;
+  $("#syncOn").style.display=on?"block":"none";
+  $("#syncOff").style.display=on?"none":"block";
+  $("#syncDot").className="dot"+(on?" live":"");
+  $("#syncLabel").textContent=on?"Syncing — everyone with the code sees this":"Not syncing — this phone only";
+}
+function headers(k){return {"Content-Type":"application/json","X-Master-Key":k,"X-Bin-Versioning":"false"};}
+async function pull(quiet){
+  if(!sync)return;
+  try{
+    const r=await fetch(`https://api.jsonbin.io/v3/b/${sync.bin}/latest`,{headers:headers(sync.key)});
+    if(!r.ok)throw 0;
+    const j=await r.json();
+    S=merge(S,j.record);localStorage.setItem(LS,JSON.stringify(S));render();
+    if(!quiet)toast("Up to date");
+  }catch(e){if(!quiet)toast("Couldn't reach the sync bin");}
+}
+async function push(){
+  if(!sync)return;
+  try{await fetch(`https://api.jsonbin.io/v3/b/${sync.bin}`,{method:"PUT",headers:headers(sync.key),body:JSON.stringify(S)});}
+  catch(e){}
+}
+function queuePush(){if(!sync)return;clearTimeout(pushTimer);pushTimer=setTimeout(async()=>{await pull(true);await push();},900);}
+const enc=o=>btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/=+$/,"");
+const dec=s=>JSON.parse(decodeURIComponent(escape(atob(s))));
+
+function sheet2(title,html){$("#sheet2Title").textContent=title;$("#sheet2Body").innerHTML=html;$("#sheet2").classList.add("on");}
+$("#closeSheet2").onclick=()=>$("#sheet2").classList.remove("on");
+
+$("#openHost").onclick=()=>{
+  sheet2("Start sync",`
+    <div class="warn"><b>Read this first.</b> The trip code contains your JSONBin key. Anyone you send it to can read and write that bin. Make a free JSONBin account used only for this trip — don't reuse a key tied to anything else.</div>
+    <ol class="note" style="padding-left:18px;margin-bottom:16px">
+      <li>Sign up at jsonbin.io (free tier is plenty).</li>
+      <li>Open API Keys and copy your Master Key.</li>
+      <li>Paste it below. The app creates the bin for you.</li>
+    </ol>
+    <label class="f"><span>JSONBin master key</span><input id="hKey" placeholder="$2a$10$..." autocomplete="off"></label>
+    <button class="btn teal" id="hGo">Create the shared bin</button>`);
+  $("#hGo").onclick=async()=>{
+    const k=$("#hKey").value.trim();if(!k)return toast("Paste the key");
+    $("#hGo").textContent="Creating…";
+    try{
+      const r=await fetch("https://api.jsonbin.io/v3/b",{method:"POST",
+        headers:{...headers(k),"X-Bin-Name":"tripsplit-"+(S.name||"trip"),"X-Bin-Private":"true"},
+        body:JSON.stringify(S)});
+      if(!r.ok)throw 0;
+      const j=await r.json();
+      sync={bin:j.metadata.id,key:k};localStorage.setItem(LSYNC,JSON.stringify(sync));
+      $("#sheet2").classList.remove("on");render();toast("Sync is on — share the code");
+    }catch(e){$("#hGo").textContent="Create the shared bin";toast("JSONBin rejected that key");}
+  };
+};
+$("#openJoin").onclick=()=>{
+  sheet2("Enter code",`
+    <p class="note" style="margin-bottom:14px">Paste the trip code the organizer sent you. Anything already on this phone gets merged in, not wiped.</p>
+    <label class="f"><span>Trip code</span><input id="jCode" placeholder="paste here" autocomplete="off"></label>
+    <button class="btn teal" id="jGo">Join this trip</button>`);
+  $("#jGo").onclick=async()=>{
+    try{
+      const o=dec($("#jCode").value.trim());
+      if(!o.bin||!o.key)throw 0;
+      sync=o;localStorage.setItem(LSYNC,JSON.stringify(sync));
+      await pull(true);$("#sheet2").classList.remove("on");render();toast("Joined — everything's synced");
+    }catch(e){toast("That code didn't work");}
+  };
+};
+$("#shareCode").onclick=async()=>{
+  const code=enc(sync);
+  const txt=`Join our trip expenses — open the app and tap Trip → Enter code, then paste:\n\n${code}`;
+  if(navigator.share){try{await navigator.share({text:txt});return;}catch(e){}}
+  try{await navigator.clipboard.writeText(code);toast("Code copied");}
+  catch(e){
+    sheet2("Trip code",`<p class="note" style="margin-bottom:12px">Press and hold to select, then send it to the group.</p>
+      <textarea readonly id="codeBox" style="width:100%;height:150px;font-family:'IBM Plex Mono',monospace;font-size:13px;padding:12px;border:1.5px solid var(--line);border-radius:11px;background:var(--card)">${esc(code)}</textarea>`);
+    setTimeout(()=>{const t=$("#codeBox");t.focus();t.setSelectionRange(0,t.value.length);},120);
+  }
+};
+$("#pullNow").onclick=()=>pull(false);
+$("#stopSync").onclick=async()=>{
+  if(!await ask("Stop syncing?","This phone keeps everything it already has, but changes stop travelling.","Stop syncing"))return;
+  sync=null;localStorage.removeItem(LSYNC);render();
+};
+
+/* ---------------- shareable text reports ---------------- */
+function money2(cents){const sc=settleCur();return sc===S.cur?fmt(cents):`${fmt(toSettle(cents),sc)} (${fmt(cents)})`;}
+function head(){
+  const tot=items().filter(i=>i.kind!=="pay").reduce((a,i)=>a+i.cents,0);
+  return [`${S.name}`,`Total spent: ${money2(tot)}`,""];
+}
+function buildCatsTxt(){
+  const cats=catTotals(),tot=cats.reduce((a,c)=>a+c[1],0);
+  if(!tot)return "Nothing logged yet.";
+  return [...head(),"WHERE IT WENT",
+    ...cats.map(([c,v])=>`${c} ${catName(c)} — ${fmt(v)} (${Math.round(v/tot*100)}%)`)].join("\n");
+}
+function buildSummary(){
+  const L=head();
+  const cats=catTotals(),tot=cats.reduce((a,c)=>a+c[1],0);
+  if(tot){L.push("WHERE IT WENT");cats.forEach(([c,v])=>L.push(`${c} ${catName(c)} — ${fmt(v)} (${Math.round(v/tot*100)}%)`));L.push("");}
+  L.push("WHO PAID WHAT");
+  people().forEach(p=>{
+    let paid=0,share=0;
+    items().forEach(it=>{paid+=paidMap(it)[p.id]||0;share+=shareMap(it)[p.id]||0;});
+    L.push(`${p.name} — paid ${fmt(paid)}, share ${fmt(share)}`);
+  });
+  L.push("","SETTLE UP");
+  const s=settlements();
+  if(!s.length)L.push("All square. Nobody owes anybody.");
+  else s.forEach(p=>L.push(`${nameOf(p.from)} pays ${nameOf(p.to)} — ${money2(p.v)}`));
+  return L.join("\n");
+}
+function payerLine(it){
+  const pm=paidMap(it),ids=Object.keys(pm);
+  return ids.length>1
+    ? ids.map(id=>`${nameOf(id)} ${fmt(pm[id])}`).join(" + ")+" paid"
+    : `${nameOf(ids[0])} paid`;
+}
+function buildLog(){
+  const L=head();L.push("EVERY EXPENSE","");
+  let day="";
+  items().slice().reverse().forEach(it=>{
+    if(it.date!==day){day=it.date;L.push(new Date(day+"T12:00").toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"}));}
+    L.push(it.kind==="pay"
+      ?`  🤝 ${it.desc} — ${fmt(it.cents)}`
+      :`  ${it.cat||"💶"} ${it.desc||"Expense"} — ${fmt(it.cents)} · ${payerLine(it)}`);
+  });
+  return L.join("\n");
+}
+function buildPerson(id){
+  let paid=0,share=0;const rows=[];
+  items().forEach(it=>{
+    paid+=paidMap(it)[id]||0;
+    const mine=shareMap(it)[id]||0;
+    share+=mine;
+    if(mine)rows.push(`  ${it.cat||"💶"} ${it.desc||"Expense"} — ${fmt(mine)} of ${fmt(it.cents)}`);
+  });
+  const net=paid-share;
+  const L=[`${S.name} — ${nameOf(id)}`,
+    `Paid: ${fmt(paid)}`,`Your share: ${fmt(share)}`,
+    Math.abs(net)<1?"Settled up.":net>0?`You are owed: ${money2(net)}`:`You owe: ${money2(-net)}`,"",
+    "YOUR SHARE, LINE BY LINE",...rows.reverse()];
+  const s=settlements().filter(p=>p.from===id||p.to===id);
+  if(s.length){L.push("","TO SQUARE UP");s.forEach(p=>L.push(`${nameOf(p.from)} pays ${nameOf(p.to)} — ${money2(p.v)}`));}
+  return L.join("\n");
+}
+async function doShare(text,title){
+  if(navigator.share){try{await navigator.share({text});return;}catch(e){if(e.name==="AbortError")return;}}
+  try{await navigator.clipboard.writeText(text);toast("Copied — paste it into a message");return;}catch(e){}
+  sheet2(title,`<p class="note" style="margin-bottom:12px">Press and hold to select all, then copy.</p>
+    <textarea readonly id="codeBox" style="width:100%;height:52vh;font-size:13px;padding:12px;border:1.5px solid var(--line);border-radius:11px;background:var(--card)">${esc(text)}</textarea>`);
+}
+$("#shareBtn").onclick=()=>{
+  if(!items().length){toast("Nothing to share yet");return;}
+  sheet2("Share",`
+    <p class="note" style="margin-bottom:16px">Plain text — drops straight into Messages, WhatsApp or email.</p>
+    <button class="btn ghost" style="margin-bottom:9px" data-sh="sum">Summary and who owes what</button>
+    <button class="btn ghost" style="margin-bottom:9px" data-sh="cat">Category breakdown</button>
+    <button class="btn ghost" style="margin-bottom:9px" data-sh="log">Every expense, itemized</button>
+    <div class="eyebrow">One person's statement</div>
+    ${people().map(p=>`<button class="btn ghost" style="margin-bottom:9px" data-sh="p:${p.id}">${esc(p.name)}</button>`).join("")}`);
+  $("#sheet2Body").onclick=e=>{
+    const b=e.target.closest("[data-sh]");if(!b)return;
+    const k=b.dataset.sh;
+    const txt=k==="sum"?buildSummary():k==="cat"?buildCatsTxt():k==="log"?buildLog():buildPerson(k.slice(2));
+    $("#sheet2").classList.remove("on");
+    setTimeout(()=>doShare(txt,S.name),150);
+  };
+};
+
+/* ---------------- boot ---------------- */
+render();
+if(sync)pull(true);
+document.addEventListener("visibilitychange",()=>{if(!document.hidden&&sync)pull(true);});
+window.addEventListener("focus",()=>{if(sync)pull(true);});
+</script>
+</body>
+</html>
