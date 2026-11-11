@@ -6,7 +6,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0B2027">
-<title>Ledger — trip expenses</title>
+<title>Trip Split</title>
+<link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%20%22Trip%20Split%20%5Cu2014%20shared%20trip%20expenses%22%2C%20%22short_name%22%3A%20%22Trip%20Split%22%2C%20%22start_url%22%3A%20%22./%22%2C%20%22scope%22%3A%20%22./%22%2C%20%22display%22%3A%20%22standalone%22%2C%20%22background_color%22%3A%20%22%23EDF1F1%22%2C%20%22theme_color%22%3A%20%22%230B2027%22%2C%20%22orientation%22%3A%20%22portrait%22%2C%20%22icons%22%3A%20%5B%7B%22src%22%3A%20%22data%3Aimage/svg%2Bxml%2C%253Csvg%2520xmlns%253D%2522http%253A//www.w3.org/2000/svg%2522%2520viewBox%253D%25220%25200%2520512%2520512%2522%253E%253Crect%2520width%253D%2522512%2522%2520height%253D%2522512%2522%2520rx%253D%2522112%2522%2520fill%253D%2522%25230B2027%2522/%253E%253Crect%2520x%253D%252296%2522%2520y%253D%2522150%2522%2520width%253D%2522320%2522%2520height%253D%252226%2522%2520rx%253D%252213%2522%2520fill%253D%2522%2523128C8C%2522/%253E%253Crect%2520x%253D%252296%2522%2520y%253D%2522243%2522%2520width%253D%2522220%2522%2520height%253D%252226%2522%2520rx%253D%252213%2522%2520fill%253D%2522%2523F2A81D%2522/%253E%253Crect%2520x%253D%252296%2522%2520y%253D%2522336%2522%2520width%253D%2522270%2522%2520height%253D%252226%2522%2520rx%253D%252213%2522%2520fill%253D%2522%2523128C8C%2522/%253E%253C/svg%253E%22%2C%20%22sizes%22%3A%20%22any%22%2C%20%22type%22%3A%20%22image/svg%2Bxml%22%2C%20%22purpose%22%3A%20%22any%20maskable%22%7D%5D%7D">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20512%20512%22%3E%3Crect%20width%3D%22512%22%20height%3D%22512%22%20rx%3D%22112%22%20fill%3D%22%230B2027%22/%3E%3Crect%20x%3D%2296%22%20y%3D%22150%22%20width%3D%22320%22%20height%3D%2226%22%20rx%3D%2213%22%20fill%3D%22%23128C8C%22/%3E%3Crect%20x%3D%2296%22%20y%3D%22243%22%20width%3D%22220%22%20height%3D%2226%22%20rx%3D%2213%22%20fill%3D%22%23F2A81D%22/%3E%3Crect%20x%3D%2296%22%20y%3D%22336%22%20width%3D%22270%22%20height%3D%2226%22%20rx%3D%2213%22%20fill%3D%22%23128C8C%22/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20512%20512%22%3E%3Crect%20width%3D%22512%22%20height%3D%22512%22%20rx%3D%22112%22%20fill%3D%22%230B2027%22/%3E%3Crect%20x%3D%2296%22%20y%3D%22150%22%20width%3D%22320%22%20height%3D%2226%22%20rx%3D%2213%22%20fill%3D%22%23128C8C%22/%3E%3Crect%20x%3D%2296%22%20y%3D%22243%22%20width%3D%22220%22%20height%3D%2226%22%20rx%3D%2213%22%20fill%3D%22%23F2A81D%22/%3E%3Crect%20x%3D%2296%22%20y%3D%22336%22%20width%3D%22270%22%20height%3D%2226%22%20rx%3D%2213%22%20fill%3D%22%23128C8C%22/%3E%3C/svg%3E">
+<meta name="apple-mobile-web-app-title" content="Trip Split">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="description" content="Split trip expenses across a group. Works offline on iPhone and Android.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=Inter+Tight:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -219,7 +225,7 @@ nav button.on .ic{filter:drop-shadow(0 0 8px rgba(242,168,29,.8))}
 <header>
   <div class="hrow">
     <div>
-      <h1 id="tripName">Trip</h1>
+      <button id="tripName" style="color:#fff;font-family:'Bricolage Grotesque',sans-serif;font-weight:800;letter-spacing:-.02em;font-size:23px;line-height:1.1;text-align:left;padding:0">Trip</button>
       <div class="hsub" id="tripSub">no expenses yet</div>
     </div>
     <div class="htot">
@@ -239,12 +245,13 @@ nav button.on .ic{filter:drop-shadow(0 0 8px rgba(242,168,29,.8))}
 
   <!-- BALANCES -->
   <section class="screen" id="s-bal">
+    <div id="reconWarn"></div>
     <div class="eyebrow">Where the money went</div>
     <div class="card" id="catBody"></div>
     <div class="eyebrow">Where everyone floats</div>
     <div class="card" id="balBody"></div>
     <div class="legend"><span>◀ owes the group</span><span>is owed ▶</span></div>
-    <div class="eyebrow">Per person</div>
+    <div class="eyebrow">Per person — tap for the full breakdown</div>
     <div class="card" id="detailBody"></div>
   </section>
 
@@ -263,21 +270,35 @@ nav button.on .ic{filter:drop-shadow(0 0 8px rgba(242,168,29,.8))}
     <div class="card pad">
       <label class="f"><span>Trip name</span><input id="setName" placeholder="Croatia 2026"></label>
       <div class="split2">
-        <label class="f"><span>Currency</span><input id="setCur" maxlength="4" placeholder="EUR"></label>
-        <label class="f"><span>Second currency</span><input id="setAlt" maxlength="4" placeholder="USD"></label>
+        <label class="f"><span>Currency</span><input id="setCur" maxlength="4" placeholder="USD"></label>
+        <label class="f"><span>Second currency</span><input id="setAlt" maxlength="4" placeholder="optional"></label>
       </div>
-      <label class="f"><span>1 <b id="curA">EUR</b> = ? <b id="curB">USD</b></span><input id="setRate" inputmode="decimal" placeholder="1.08"></label>
+      <label class="f" id="rateRow"><span>1 <b id="curA">USD</b> = ? <b id="curB">—</b></span>
+        <div class="split2"><input id="setRate" inputmode="decimal" placeholder="1.00">
+        <button class="btn ghost" style="flex:0 0 118px" id="liveRate">Today's rate</button></div></label>
       <label class="f"><span>Show amounts in</span></label>
       <div class="seg" id="dispCurSeg" style="margin:-8px 0 8px"></div>
       <p class="note" style="margin:0 0 16px">Totals, balances and settle-up all display in this. Expenses stay recorded in <b id="bookCur">EUR</b> exactly as they were paid.</p>
       <button class="btn teal" id="saveTrip">Save trip</button>
     </div>
 
+    <div class="eyebrow">Your trips</div>
+    <div class="card" id="tripsBody"></div>
+    <div class="card pad" style="margin-top:-2px">
+      <div class="split2">
+        <input id="newTrip" placeholder="New trip name" autocomplete="off">
+        <button class="btn teal" style="flex:0 0 88px" id="addTrip">Add</button>
+      </div>
+      <label style="display:flex;align-items:center;gap:9px;margin-top:12px;font-size:14px">
+        <input type="checkbox" id="carryPeople" checked style="width:20px;height:20px;flex:none">
+        <span>Copy the people and currency from this trip</span></label>
+    </div>
+
     <div class="eyebrow">People</div>
     <div class="card" id="peopleBody"></div>
     <div class="card pad" style="margin-top:-2px">
       <div class="split2">
-        <input id="newPerson" placeholder="Add a name" autocomplete="off">
+        <input id="newPerson" placeholder="Add a name or couple" autocomplete="off">
         <button class="btn teal" style="flex:0 0 88px" id="addPerson">Add</button>
       </div>
     </div>
@@ -288,15 +309,20 @@ nav button.on .ic{filter:drop-shadow(0 0 8px rgba(242,168,29,.8))}
       <div id="syncOff">
         <p class="note" style="margin-bottom:12px">Sync uses a free JSONBin.io bin. One person sets it up and shares the trip code; everyone else pastes it in.</p>
         <div class="btnrow">
-          <button class="btn ghost sm" id="openHost">Start sync</button>
+          <button class="btn teal sm" id="openFb">Start sync</button>
           <button class="btn ghost sm" id="openJoin">Enter code</button>
         </div>
+        <button class="btn ghost sm" style="width:100%;margin-top:9px;font-size:13px" id="openHost">Use JSONBin instead</button>
       </div>
       <div id="syncOn" style="display:none">
         <div class="btnrow">
           <button class="btn teal sm" id="shareCode">Share code</button>
           <button class="btn ghost sm" id="pullNow">Sync now</button>
         </div>
+        <label class="f" style="margin-top:14px"><span>Sharing key — strongly recommended</span>
+          <input id="shareKeyIn" placeholder="Access Key with Read + Update" autocomplete="off"></label>
+        <button class="btn ghost sm" style="width:100%" id="saveShareKey">Use this key in the trip code</button>
+        <p class="note">Without one, the trip code hands out your master key, which can delete every bin on your account.</p>
         <button class="btn danger sm" style="width:100%;margin-top:9px" id="stopSync">Stop syncing</button>
       </div>
     </div>
@@ -350,7 +376,7 @@ nav button.on .ic{filter:drop-shadow(0 0 8px rgba(242,168,29,.8))}
       <div class="eyebrow">How to split</div>
       <div class="seg" id="fMode">
         <button data-m="equal" class="on">Evenly</button>
-        <button data-m="shares">By shares</button>
+        <button data-m="shares">Per head</button>
         <button data-m="exact">Exact amounts</button>
       </div>
       <div id="fCustom" style="margin-top:14px"></div>
@@ -389,24 +415,62 @@ nav button.on .ic{filter:drop-shadow(0 0 8px rgba(242,168,29,.8))}
 <script>
 "use strict";
 const CATS=[["🍽️","Food"],["🍸","Drinks"],["🛒","Groceries"],["⛽","Fuel"],["⚓","Mooring"],["🛥️","Charter"],["🚕","Transport"],["🏨","Lodging"],["🎟️","Activity"],["💶","Other"]];
-const LS="tripsplit.v1", LSYNC="tripsplit.sync.v1";
+const LS="tripsplit.v1", LSYNC="tripsplit.sync.v1", LSTORE="tripsplit.trips.v1";
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
 const now=()=>Date.now();
 const $=s=>document.querySelector(s);
 
 /* ---------------- state ---------------- */
-let S=load();
-let sync=JSON.parse(localStorage.getItem(LSYNC)||"null");
+let store=loadStore();
+let S=store.trips[store.active];
+let sync=(JSON.parse(localStorage.getItem(LSYNC)||"{}")||{})[store.active]||null;
 let draft=null, tab="log", pushTimer=null, filter="all";
 
 function blank(){
-  return {tripId:uid(),name:"Trip",cur:"EUR",alt:"USD",rate:1.08,metaUpd:now(),people:{},items:{}};
+  return {tripId:uid(),name:"Trip",cur:"USD",alt:"",rate:1,archived:false,metaUpd:now(),people:{},items:{}};
 }
-function load(){
-  try{const r=JSON.parse(localStorage.getItem(LS));if(r&&r.people)return r;}catch(e){}
-  return blank();
+function loadStore(){
+  try{
+    const st=JSON.parse(localStorage.getItem(LSTORE));
+    if(st&&st.trips&&st.trips[st.active])return st;
+  }catch(e){}
+  // migrate a single-trip install, or start fresh
+  let first=null;
+  try{const r=JSON.parse(localStorage.getItem(LS));if(r&&r.people)first=r;}catch(e){}
+  if(!first)first=blank();
+  if(!first.tripId)first.tripId=uid();
+  return {v:1,active:first.tripId,trips:{[first.tripId]:first}};
 }
-function save(){localStorage.setItem(LS,JSON.stringify(S));render();queuePush();}
+function persist(){
+  store.trips[S.tripId]=S;store.active=S.tripId;
+  localStorage.setItem(LSTORE,JSON.stringify(store));
+  localStorage.setItem(LS,JSON.stringify(S));   // keeps old exports/imports working
+}
+function save(){persist();render();queuePush();}
+function syncMap(){try{return JSON.parse(localStorage.getItem(LSYNC))||{};}catch(e){return {};}}
+function saveSync(){
+  const m=syncMap();
+  if(sync)m[S.tripId]=sync;else delete m[S.tripId];
+  localStorage.setItem(LSYNC,JSON.stringify(m));
+}
+function tripList(){
+  return Object.values(store.trips).sort((a,b)=>
+    (a.archived?1:0)-(b.archived?1:0) || (b.metaUpd||0)-(a.metaUpd||0));
+}
+function tripSpend(t){
+  return Object.values(t.items||{}).filter(i=>!i.del&&i.kind!=="pay").reduce((a,i)=>a+i.cents,0);
+}
+function switchTrip(id){
+  if(!store.trips[id])return;
+  persist();
+  store.active=id;S=store.trips[id];
+  sync=syncMap()[id]||null;
+  localStorage.setItem(LSTORE,JSON.stringify(store));
+  localStorage.setItem(LS,JSON.stringify(S));
+  filter="all";render();
+  if(sync)pull(true);
+  toast(S.name);
+}
 
 /* ---------------- money ---------------- */
 const C=n=>Math.round(n*100);
@@ -420,14 +484,29 @@ const items=()=>Object.values(S.items).filter(i=>!i.del).sort((a,b)=>b.date.loca
 
 /* ---------------- split math (integer cents) ---------------- */
 /* who actually put money down — {personId: cents}. Falls back to the old single payer field. */
+function live(id){return S.people[id]&&!S.people[id].del;}
 function paidMap(it){
-  if(it.paid&&Object.keys(it.paid).length)return it.paid;
-  return it.payer?{[it.payer]:it.cents}:{};
+  const raw=(it.paid&&Object.keys(it.paid).length)?it.paid:(it.payer?{[it.payer]:it.cents}:{});
+  const ids=Object.keys(raw).filter(live);
+  if(ids.length===Object.keys(raw).length)return raw;
+  if(!ids.length)return {};
+  // a payer was removed — reassign their outlay across the remaining payers so the books still close
+  const out={};ids.forEach(id=>out[id]=raw[id]);
+  let orphan=it.cents-ids.reduce((a,id)=>a+out[id],0);
+  for(let k=0;orphan>0;k++,orphan--)out[ids[k%ids.length]]++;
+  for(let k=0;orphan<0;k++,orphan++)out[ids[k%ids.length]]--;
+  return out;
 }
 function shareMap(it){
-  const out={},ids=(it.with||[]).filter(id=>S.people[id]);
+  const out={},ids=(it.with||[]).filter(id=>S.people[id]&&!S.people[id].del);
   if(!ids.length)return out;
-  if(it.mode==="exact"){ids.forEach(id=>out[id]=it.parts?.[id]||0);return out;}
+  if(it.mode==="exact"){
+    ids.forEach(id=>out[id]=it.parts?.[id]||0);
+    let orphan=it.cents-ids.reduce((a,id)=>a+out[id],0);
+    for(let k=0;orphan>0;k++,orphan--)out[ids[k%ids.length]]++;
+    for(let k=0;orphan<0;k++,orphan++)out[ids[k%ids.length]]--;
+    return out;
+  }
   let w={},tw=0;
   ids.forEach(id=>{const v=it.mode==="shares"?Math.max(0,it.parts?.[id]??1):1;w[id]=v;tw+=v;});
   if(tw<=0){ids.forEach(id=>out[id]=0);return out;}
@@ -444,8 +523,8 @@ function balances(){
   const b={};people().forEach(p=>b[p.id]=0);
   items().forEach(it=>{
     const pm=paidMap(it);
-    if(!Object.keys(pm).length||Object.keys(pm).some(id=>b[id]===undefined))return;
-    for(const id in pm)b[id]+=pm[id];
+    if(!Object.keys(pm).length)return;
+    for(const id in pm)if(b[id]!==undefined)b[id]+=pm[id];
     const m=shareMap(it);
     for(const id in m) if(b[id]!==undefined) b[id]-=m[id];
   });
@@ -473,13 +552,19 @@ function render(){
   const list=items(),spend=list.filter(i=>i.kind!=="pay");
   const tot=spend.reduce((a,i)=>a+i.cents,0);
   $("#tripTotal").textContent=fmtD(tot);
-  $("#totLabel").textContent=`total spent · ${dispCur()}`;
+  $("#totLabel").textContent=twoCur()?`total spent · ${dispCur()}`:"total spent";
   const n=people().length;
   $("#tripSub").textContent=n?`${n} ${n===1?"person":"people"} · ${spend.length} ${spend.length===1?"expense":"expenses"}`:"add people to start";
-  renderLog(list);renderCatBreak();renderFilter();renderBal();renderSettle();renderPeople();renderSync();
+  renderLog(list);renderCatBreak();renderFilter();renderBal();renderSettle();renderPeople();renderTrips();renderSync();
   $("#setName").value=S.name||"";$("#setCur").value=S.cur;$("#setAlt").value=S.alt||"";
   $("#setRate").value=S.rate;$("#curA").textContent=S.cur;$("#curB").textContent=S.alt||"—";
   $("#dispCurSeg").innerHTML=curSeg();$("#bookCur").textContent=S.cur;
+  showIf("#dispCurSeg",twoCur());
+  const de=$("#dispCurSeg").previousElementSibling;
+  if(de&&de.classList.contains("f"))de.style.display=twoCur()?"":"none";
+  const dn=$("#dispCurSeg").nextElementSibling;
+  if(dn&&dn.classList.contains("note"))dn.style.display=twoCur()?"":"none";
+  showIf("#rateRow",twoCur());
 }
 function dayLabel(d){
   const t=new Date(),iso=x=>x.toISOString().slice(0,10);
@@ -532,6 +617,9 @@ function renderLog(all){
 }
 function renderBal(){
   const b=balances(),ps=people();
+  const off=Object.values(b).reduce((a,v)=>a+v,0);
+  $("#reconWarn").innerHTML=Math.abs(off)<2?"":
+    `<div class="warn"><b>Books are out by ${fmtD(Math.abs(off))}.</b> Everyone's balance should add up to zero. Usually this means an expense is credited to someone no longer on the trip. Check the log for anything that looks wrong before you settle.</div>`;
   if(!ps.length){$("#balBody").innerHTML=`<div class="empty">Add people first.</div>`;$("#detailBody").innerHTML="";return;}
   const max=Math.max(1,...ps.map(p=>Math.abs(b[p.id]||0)));
   $("#balBody").innerHTML=ps.map(p=>{
@@ -545,9 +633,9 @@ function renderBal(){
   $("#detailBody").innerHTML=ps.map(p=>{
     let paid=0,owed=0;
     items().forEach(it=>{paid+=paidMap(it)[p.id]||0;owed+=shareMap(it)[p.id]||0;});
-    return `<div class="row" style="padding:13px 14px"><span>${esc(p.name)}</span>
+    return `<button class="row" style="padding:13px 14px;width:100%;text-align:left" data-person="${p.id}"><span>${esc(p.name)}</span>
       <span style="text-align:right;font-size:13px;color:var(--muted)">
-      paid <b class="money" style="color:var(--ink)">${fmtD(paid)}</b> · share <b class="money" style="color:var(--ink)">${fmtD(owed)}</b></span></div>`;
+      paid <b class="money" style="color:var(--ink)">${fmtD(paid)}</b> · share <b class="money" style="color:var(--ink)">${fmtD(owed)}</b></span></button>`;
   }).join("");
 }
 function dispCur(){const d=S.dispCur||S.settleCur;return (d&&(d===S.cur||d===S.alt))?d:S.cur;}
@@ -555,29 +643,64 @@ function toDisp(cents){return dispCur()===S.cur?cents:Math.round(cents*(S.rate||
 function fmtD(cents){return fmt(toDisp(cents),dispCur());}
 function otherCur(){return dispCur()===S.cur?S.alt:S.cur;}
 function toOther(cents){return dispCur()===S.cur?Math.round(cents*(S.rate||1)):cents;}
-function curSeg(id){return [S.cur,S.alt].filter(Boolean).map(c=>
+function twoCur(){return !!(S.alt&&S.alt!==S.cur);}
+function curSeg(){return [S.cur,S.alt].filter(Boolean).map(c=>
   `<button data-scur="${c}" class="${dispCur()===c?"on":""}">${esc(c)}</button>`).join("");}
+function showIf(sel,on){const e=$(sel);if(e)e.style.display=on?"":"none";}
 function renderSettle(){
   const sc=dispCur();
   $("#settleCurSeg").innerHTML=curSeg();
+  showIf("#settleCurSeg",twoCur());
+  const se=$("#settleCurSeg").previousElementSibling;
+  if(se&&se.classList.contains("eyebrow"))se.style.display=twoCur()?"":"none";
   $("#settleNote").innerHTML=sc===S.cur
-    ?`Tap a payment once the money actually moves. It gets logged and the balances update.`
+    ?`Venmo opens a prefilled payment. Tap <b>Settle</b> once the money actually moves — however it moved — and the balances update.`
     :`Converted from ${esc(S.cur)} at ${S.rate}. Change the rate under <b>Trip</b>. Payments are still recorded in ${esc(S.cur)}, so the books stay exact.`;
   const s=settlements(),el=$("#settleBody");
   if(!s.length){el.innerHTML=`<div class="empty"><h3>All square</h3><p>Nobody owes anybody. Enjoy the rest of it.</p></div>`;return;}
   el.innerHTML=s.map(p=>{
     const main=fmt(toDisp(p.v),sc);
     const sub=sc===S.cur?"":`<div style="font-size:12px;color:var(--muted)" class="money">${fmt(p.v)}</div>`;
-    return `<button class="pay" data-pay="${p.from}|${p.to}|${p.v}" style="width:100%;text-align:left">
+    const vh=S.people[p.to]?.venmo;
+    return `<div class="pay">
     <div class="cat">→</div>
     <div class="flow"><div class="who">${esc(nameOf(p.from))} <span class="arrow">pays</span> ${esc(nameOf(p.to))}</div>
     <div class="amt money">${main}</div>${sub}</div>
-    <div class="chip">Settle</div></button>`;}).join("");
+    <div style="display:flex;flex-direction:column;gap:6px;flex:none">
+      ${vh?`<button class="chip" data-venmopay="${p.from}|${p.to}|${p.v}" style="background:#008CFF;color:#fff;border-color:#008CFF">Venmo</button>`:""}
+      <button class="chip" data-pay="${p.from}|${p.to}|${p.v}">Settle</button>
+    </div></div>`;}).join("");
+}
+function renderTrips(){
+  const ts=tripList(),el=$("#tripsBody");
+  el.innerHTML=ts.map(t=>{
+    const on=t.tripId===S.tripId, n=Object.values(t.people||{}).filter(p=>!p.del).length;
+    const cnt=Object.values(t.items||{}).filter(i=>!i.del).length;
+    return `<div class="row" style="padding:12px 14px;${t.archived?"opacity:.62":""}">
+      <button style="flex:1;text-align:left;min-width:0" data-trip="${t.tripId}">
+        <div style="font-weight:${on?700:600}">${on?"● ":""}${esc(t.name||"Trip")}${t.archived?" · archived":""}</div>
+        <div class="note" style="margin:0">${cnt} ${cnt===1?"entry":"entries"} · ${n} ${n===1?"unit":"units"} · ${fmt(tripSpend(t),t.cur)}</div>
+      </button>
+      <button class="btn ghost sm" data-arch="${t.tripId}">${t.archived?"Restore":"Archive"}</button>
+      ${ts.length>1?`<button class="btn danger sm" data-deltrip="${t.tripId}">✕</button>`:""}
+    </div>`;
+  }).join("");
 }
 function renderPeople(){
   const ps=people();
-  $("#peopleBody").innerHTML=ps.length?ps.map(p=>`<div class="row" style="padding:13px 14px">
-    <span>${esc(p.name)}</span><button class="btn danger sm" data-rm="${p.id}">Remove</button></div>`).join("")
+  $("#peopleBody").innerHTML=ps.length?ps.map(p=>`<div style="padding:13px 14px;border-bottom:1px solid var(--line)">
+    <div style="display:flex;align-items:center;gap:10px">
+      <span style="flex:1;font-weight:600">${esc(p.name)}</span>
+      <span style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:12px;color:var(--muted)">people</span>
+        <input data-size="${p.id}" inputmode="numeric" value="${p.size||1}" style="width:52px;text-align:center;padding:8px">
+      </span>
+      <button class="btn danger sm" data-rm="${p.id}">Remove</button>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;margin-top:9px">
+      <span style="font-size:12px;color:var(--muted);width:58px;flex:none">Venmo</span>
+      <input data-venmo="${p.id}" value="${esc(p.venmo||"")}" placeholder="@their-handle" autocomplete="off" style="padding:8px 10px;font-size:14px">
+    </div></div>`).join("")
     :`<div class="empty" style="padding:26px">Nobody added yet.</div>`;
 }
 function esc(s){return String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
@@ -611,7 +734,9 @@ function openSheet(id){
   draft=ex?JSON.parse(JSON.stringify(ex)):{
     id:uid(),kind:"exp",desc:"",cents:0,cur:S.cur,cat:"🍽️",
     payers:[people()[0].id],paid:{},
-    with:people().map(p=>p.id),mode:"equal",parts:{},
+    with:people().map(p=>p.id),
+    mode:people().some(p=>(p.size||1)>1)?"shares":"equal",
+    parts:Object.fromEntries(people().map(p=>[p.id,p.size||1])),
     date:new Date().toISOString().slice(0,10),made:now(),upd:now()
   };
   if(!draft.payers||!draft.payers.length){
@@ -633,6 +758,7 @@ function paintSheet(){
   const ps=people();
   $("#fCurSeg").innerHTML=[S.cur,S.alt].filter(Boolean).map(c=>
     `<button data-cur="${c}" class="${draft.cur===c?"on":""}">${esc(c)}</button>`).join("");
+  $("#fCurSeg").style.display=twoCur()?"":"none";
   $("#fCats").innerHTML=CATS.map(([e,n])=>
     `<button class="tile ${draft.cat===e?"on":""}" data-cat="${e}"><span class="e">${e}</span><span class="l">${esc(n)}</span></button>`).join("");
   $("#fPayer").innerHTML=ps.map(p=>
@@ -675,20 +801,32 @@ function paintPaid(){
   $("#evenPay").onclick=()=>{evenPay();paintPaid();};
   paidSum();
 }
+function draftRate(){
+  // rate to convert the entry currency into the trip's base currency
+  return draft.cur===S.cur?1:(draft.fx||(S.rate?1/S.rate:1));
+}
 function paintConv(){
-  const c=readAmt();let t="";
-  if(c&&S.rate&&S.alt){
-    t=draft.cur===S.cur?`≈ ${fmt(Math.round(c*S.rate),S.alt)}`:`≈ ${fmt(Math.round(c/S.rate),S.cur)} — stored in ${S.cur}`;
-  }
-  $("#fConv").textContent=t;
+  const c=readAmt();
+  const el=$("#fConv");
+  if(!c||draft.cur===S.cur||!twoCur()){el.innerHTML="";return;}
+  const base=Math.round(c*draftRate());
+  const src=draft.fxDate?`ECB rate for ${draft.fxDate}`:(draft.fx?"saved rate":"your manual rate");
+  el.innerHTML=`= ${fmt(base,S.cur)} <span style="opacity:.7">· ${src}</span>
+    <button id="fxGet" class="chip" style="padding:5px 10px;font-size:12px;min-height:0;margin-left:6px">Use ECB rate</button>`;
+  $("#fxGet").onclick=async()=>{
+    $("#fxGet").textContent="…";
+    const v=await lookupRate(draft.cur,S.cur,$("#fDate").value||draft.date);
+    if(v){draft.fx=v;draft.fxDate=$("#fDate").value||draft.date;paintConv();sumNote();toast(`1 ${draft.cur} = ${v.toFixed(4)} ${S.cur}`);}
+    else{paintConv();toast("Couldn't reach the rate service — manual rate kept");}
+  };
 }
 function readAmt(){const v=parseFloat(($("#fAmt").value||"").replace(",","."));return isFinite(v)?C(v):0;}
-function baseCents(){const c=readAmt();return draft.cur===S.cur?c:Math.round(c/(S.rate||1));}
+function baseCents(){const c=readAmt();return draft.cur===S.cur?c:Math.round(c*draftRate());}
 function paintCustom(){
   const el=$("#fCustom");
   if(draft.mode==="equal"){el.innerHTML="";return;}
   const ids=draft.with.filter(id=>S.people[id]);
-  const lbl=draft.mode==="shares"?"shares":`amount (${S.cur})`;
+  const lbl=draft.mode==="shares"?"people":`amount (${S.cur})`;
   el.innerHTML=`<div class="card pad" style="margin:0">${ids.map(id=>`
     <div class="row" style="padding:9px 0"><span style="flex:1">${esc(nameOf(id))}</span>
     <input data-part="${id}" inputmode="decimal" style="width:110px;text-align:right;padding:9px 11px"
@@ -708,11 +846,25 @@ function sumNote(){
     n.innerHTML=s===t?`Adds up. ✓`:`<b style="color:var(--coral)">${fmt(Math.abs(t-s))} ${s<t?"left to assign":"over the total"}</b>`;
   }else{
     const tw=draft.with.reduce((a,id)=>a+(draft.parts[id]??1),0);
-    n.textContent=`${tw} shares total`;
+    n.textContent=`Split ${tw} ways`;
   }
 }
 $("#fAmt").oninput=()=>{paintConv();sumNote();if(!draft.paidTouched){evenPay();paintPaid();}else paidSum();};
-$("#fCurSeg").onclick=e=>{const b=e.target.closest("[data-cur]");if(b){draft.cur=b.dataset.cur;if(!draft.paidTouched)evenPay();paintSheet();}};
+$("#fCurSeg").onclick=async e=>{
+  const b=e.target.closest("[data-cur]");if(!b)return;
+  draft.cur=b.dataset.cur;draft.fx=null;draft.fxDate=null;
+  if(!draft.paidTouched)evenPay();
+  paintSheet();
+  if(draft.cur!==S.cur){
+    const v=await lookupRate(draft.cur,S.cur,$("#fDate").value||draft.date);
+    if(v){draft.fx=v;draft.fxDate=$("#fDate").value||draft.date;if(!draft.paidTouched)evenPay();paintSheet();}
+  }
+};
+$("#fDate").onchange=async()=>{
+  if(draft.cur===S.cur)return;
+  const v=await lookupRate(draft.cur,S.cur,$("#fDate").value||draft.date);
+  if(v){draft.fx=v;draft.fxDate=$("#fDate").value;paintConv();sumNote();}
+};
 $("#fCats").onclick=e=>{const b=e.target.closest("[data-cat]");if(b){draft.cat=b.dataset.cat;paintSheet();}};
 $("#fPayer").onclick=e=>{
   const b=e.target.closest("[data-payer]");if(!b)return;
@@ -729,7 +881,7 @@ $("#allOn").onclick=()=>{draft.with=people().map(p=>p.id);paintSheet();};
 $("#allOff").onclick=()=>{draft.with=[];paintSheet();};
 $("#fMode").onclick=e=>{const b=e.target.closest("[data-m]");if(!b)return;
   draft.mode=b.dataset.m;
-  if(draft.mode==="shares")draft.with.forEach(id=>{if(typeof draft.parts[id]!=="number"||draft.parts[id]>50)draft.parts[id]=1;});
+  if(draft.mode==="shares")draft.with.forEach(id=>{draft.parts[id]=S.people[id]?.size||1;});
   paintSheet();};
 $("#closeSheet").onclick=closeSheet;
 $("#sheet").querySelector(".scrim").onclick=e=>e.stopPropagation();
@@ -748,7 +900,9 @@ $("#saveItem").onclick=()=>{
   }else draft.paid={[draft.payers[0]]:c};
   draft.payer=draft.payers[0];
   delete draft.paidTouched;
-  draft.cents=c;draft.desc=$("#fDesc").value.trim();draft.date=$("#fDate").value||draft.date;draft.upd=now();
+  draft.cents=c;draft.desc=$("#fDesc").value.trim();draft.date=$("#fDate").value||draft.date;
+  draft.entered=draft.cur===S.cur?null:{cur:draft.cur,amt:readAmt(),fx:draftRate(),fxDate:draft.fxDate||null};
+  draft.upd=now();
   S.items[draft.id]=draft;closeSheet();save();toast("Saved");
 };
 $("#delItem").onclick=async()=>{
@@ -760,6 +914,7 @@ $("#filterBar").onclick=e=>{
   const b=e.target.closest("[data-f]");if(!b)return;
   filter=b.dataset.f;render();window.scrollTo(0,0);
 };
+$("#detailBody").onclick=e=>{const b=e.target.closest("[data-person]");if(b)openPerson(b.dataset.person);};
 $("#catBody").onclick=e=>{
   const b=e.target.closest("[data-jump]");if(!b)return;
   filter=b.dataset.jump;
@@ -767,7 +922,7 @@ $("#catBody").onclick=e=>{
   render();
 };
 $("#fab").onclick=()=>openSheet(null);
-$("#logBody").onclick=e=>{const b=e.target.closest("[data-edit]");if(b)openSheet(b.dataset.edit);};
+$("#logBody").onclick=e=>{const b=e.target.closest("[data-edit]");if(b)openDetail(b.dataset.edit);};
 
 /* record a settlement payment */
 function pickDisp(e){
@@ -777,6 +932,17 @@ function pickDisp(e){
 $("#settleCurSeg").onclick=pickDisp;
 $("#dispCurSeg").onclick=pickDisp;
 $("#settleBody").onclick=async e=>{
+  const vp=e.target.closest("[data-venmopay]");
+  if(vp){
+    const [from,to,v]=vp.dataset.venmopay.split("|");
+    const usd=dispCur()==="USD"?toDisp(+v):(S.alt==="USD"?Math.round(+v*(S.rate||1)):+v);
+    const h=S.people[to].venmo;
+    const note=encodeURIComponent(`${S.name} — settling up`);
+    const amt=(usd/100).toFixed(2);
+    window.open(`https://venmo.com/${encodeURIComponent(h)}?txn=pay&amount=${amt}&note=${note}`,"_blank");
+    toast("Mark it settled once it sends");
+    return;
+  }
   const b=e.target.closest("[data-pay]");if(!b)return;
   const [from,to,v]=b.dataset.pay.split("|");
   const sc=dispCur();
@@ -790,12 +956,60 @@ $("#settleBody").onclick=async e=>{
 };
 
 /* ---------------- trip settings ---------------- */
+$("#liveRate").onclick=async()=>{
+  if(!S.alt)return toast("Set a second currency first");
+  $("#liveRate").textContent="…";
+  const d=new Date().toISOString().slice(0,10);
+  const v=await lookupRate(S.cur,S.alt,d);
+  $("#liveRate").textContent="Today's rate";
+  if(v){$("#setRate").value=v.toFixed(4);toast(`1 ${S.cur} = ${v.toFixed(4)} ${S.alt}`);}
+  else toast("Couldn't reach the rate service");
+};
 $("#saveTrip").onclick=()=>{
+  const oldCur=S.cur;
   S.name=$("#setName").value.trim()||"Trip";
-  S.cur=($("#setCur").value.trim()||"EUR").toUpperCase();
+  S.cur=($("#setCur").value.trim()||"USD").toUpperCase();
+  if(oldCur!==S.cur&&items().length)
+    setTimeout(()=>toast(`Amounts already logged are now read as ${S.cur}, not reconverted`),400);
   S.alt=$("#setAlt").value.trim().toUpperCase();
-  S.rate=parseFloat($("#setRate").value)||1;
+  S.rate=S.alt?(parseFloat($("#setRate").value)||1):1;
+  if(!S.alt)S.dispCur=S.cur;
   S.metaUpd=now();save();toast("Trip saved");
+};
+$("#tripsBody").onclick=async e=>{
+  const sw=e.target.closest("[data-trip]"),ar=e.target.closest("[data-arch]"),dl=e.target.closest("[data-deltrip]");
+  if(dl){
+    const t=store.trips[dl.dataset.deltrip];
+    if(!await ask(`Delete ${t.name}?`,"Every expense on this trip goes with it. Export a backup first if you might want it.","Delete trip"))return;
+    delete store.trips[t.tripId];
+    const m=syncMap();delete m[t.tripId];localStorage.setItem(LSYNC,JSON.stringify(m));
+    if(t.tripId===S.tripId){const nx=tripList()[0];store.active=nx.tripId;S=nx;sync=syncMap()[S.tripId]||null;}
+    persist();render();toast("Deleted");return;
+  }
+  if(ar){
+    const t=store.trips[ar.dataset.arch];
+    t.archived=!t.archived;t.metaUpd=now();
+    if(t.tripId===S.tripId)S.archived=t.archived;
+    persist();render();toast(t.archived?"Archived":"Restored");return;
+  }
+  if(sw&&sw.dataset.trip!==S.tripId)switchTrip(sw.dataset.trip);
+};
+function addTrip(){
+  const nm=$("#newTrip").value.trim();if(!nm)return toast("Name the trip");
+  const carry=$("#carryPeople").checked;
+  const t=blank();t.name=nm;
+  if(carry){
+    t.cur=S.cur;t.alt=S.alt;t.rate=S.rate;t.dispCur=S.dispCur;
+    people().forEach(p=>t.people[p.id]={id:p.id,name:p.name,size:p.size||1,made:p.made,upd:now()});
+  }
+  store.trips[t.tripId]=t;$("#newTrip").value="";
+  switchTrip(t.tripId);
+}
+$("#addTrip").onclick=addTrip;
+$("#newTrip").onkeydown=e=>{if(e.key==="Enter")addTrip();};
+$("#tripName").onclick=()=>{
+  document.querySelector('nav button[data-tab="trip"]').click();
+  setTimeout(()=>$("#tripsBody").scrollIntoView({block:"center",behavior:"smooth"}),80);
 };
 function addPerson(){
   const n=$("#newPerson").value.trim();if(!n)return;
@@ -804,6 +1018,19 @@ function addPerson(){
 }
 $("#addPerson").onclick=addPerson;
 $("#newPerson").onkeydown=e=>{if(e.key==="Enter")addPerson();};
+$("#peopleBody").oninput=e=>{
+  const v=e.target.closest("[data-venmo]");
+  if(v){
+    const p=S.people[v.dataset.venmo];
+    S.people[p.id]={...p,venmo:v.value.trim().replace(/^@/,""),upd:now()};
+    persist();queuePush();return;
+  }
+  const i=e.target.closest("[data-size]");if(!i)return;
+  const n=Math.max(1,parseInt(i.value)||1);
+  const p=S.people[i.dataset.size];
+  S.people[p.id]={...p,size:n,upd:now()};
+  persist();queuePush();
+};
 $("#peopleBody").onclick=async e=>{
   const b=e.target.closest("[data-rm]");if(!b)return;
   const id=b.dataset.rm;
@@ -813,7 +1040,7 @@ $("#peopleBody").onclick=async e=>{
 };
 $("#wipe").onclick=async()=>{
   if(!await ask("Erase this trip?","Every expense and person on this phone. This cannot be undone.","Erase everything"))return;
-  S=blank();localStorage.removeItem(LSYNC);sync=null;save();toast("Erased");
+  const keep=S.tripId;S=blank();S.tripId=keep;S.name="Trip";store.trips[keep]=S;sync=null;saveSync();save();toast("Erased");
 };
 $("#exportJson").onclick=()=>{
   const a=document.createElement("a");
@@ -824,7 +1051,12 @@ $("#importJson").onclick=()=>$("#fileIn").click();
 $("#fileIn").onchange=e=>{
   const f=e.target.files[0];if(!f)return;
   const r=new FileReader();
-  r.onload=()=>{try{S=merge(S,JSON.parse(r.result));save();toast("Imported and merged");}catch(x){toast("That file didn't parse");}};
+  r.onload=()=>{try{
+    const inc=JSON.parse(r.result);
+    if(inc.tripId&&inc.tripId!==S.tripId&&!store.trips[inc.tripId]){
+      store.trips[inc.tripId]=inc;persist();switchTrip(inc.tripId);toast("Imported as a new trip");
+    }else{S=merge(S,inc);save();toast("Imported and merged");}
+  }catch(x){toast("That file didn't parse");}};
   r.readAsText(f);e.target.value="";
 };
 
@@ -849,23 +1081,78 @@ function renderSync(){
   $("#syncOn").style.display=on?"block":"none";
   $("#syncOff").style.display=on?"none":"block";
   $("#syncDot").className="dot"+(on?" live":"");
-  $("#syncLabel").textContent=on?"Syncing — everyone with the code sees this":"Not syncing — this phone only";
+  if(on&&$("#shareKeyIn"))$("#shareKeyIn").value=sync.shareKey||"";
+  $("#syncLabel").textContent=on
+    ?`${sync.host==="fb"?"Firebase":"JSONBin"} · ${sync.pass?"encrypted end to end":"NOT encrypted"}`
+    :"Not syncing — this phone only";
+  const sk=$("#syncOn").querySelector("#shareKeyIn");
+  if(sk)sk.closest(".f").parentNode.querySelectorAll("#shareKeyIn,#saveShareKey").forEach(x=>{
+    x.style.display=sync&&sync.host==="fb"?"none":"";});
 }
-function headers(k){return {"Content-Type":"application/json","X-Master-Key":k,"X-Bin-Versioning":"false"};}
+/* ---- end-to-end encryption ----
+   The trip passphrase never leaves this device. Whatever host we sync through
+   stores ciphertext only, so real names and amounts are unreadable to them. */
+const te=new TextEncoder(), td=new TextDecoder();
+const b64=b=>btoa(String.fromCharCode(...new Uint8Array(b)));
+const unb64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+async function keyFrom(pass,salt){
+  const base=await crypto.subtle.importKey("raw",te.encode(pass),"PBKDF2",false,["deriveKey"]);
+  return crypto.subtle.deriveKey(
+    {name:"PBKDF2",salt:te.encode(salt),iterations:150000,hash:"SHA-256"},
+    base,{name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
+}
+async function seal(obj,pass,salt){
+  const k=await keyFrom(pass,salt), iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=await crypto.subtle.encrypt({name:"AES-GCM",iv},k,te.encode(JSON.stringify(obj)));
+  return {enc:1,iv:b64(iv),ct:b64(ct)};
+}
+async function unseal(box,pass,salt){
+  if(!box||box.enc!==1)return box;               // plaintext from an older version
+  const k=await keyFrom(pass,salt);
+  const pt=await crypto.subtle.decrypt({name:"AES-GCM",iv:unb64(box.iv)},k,unb64(box.ct));
+  return JSON.parse(td.decode(pt));
+}
+/* host adapters — the trip record is ciphertext either way */
+function fbUrl(){return `${sync.db.replace(/\/+$/,"")}/trips/${sync.path}.json`;}
+async function hostGet(){
+  if(sync.host==="fb"){
+    const r=await fetch(fbUrl());
+    if(!r.ok)throw 0;
+    return await r.json();
+  }
+  const r=await fetch(`https://api.jsonbin.io/v3/b/${sync.bin}/latest`,{headers:headers(sync.key,sync.hdr)});
+  if(!r.ok)throw 0;
+  return (await r.json()).record;
+}
+async function hostPut(body){
+  if(sync.host==="fb"){
+    return fetch(fbUrl(),{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+  }
+  return fetch(`https://api.jsonbin.io/v3/b/${sync.bin}`,{method:"PUT",headers:headers(sync.key,sync.hdr),body:JSON.stringify(body)});
+}
+function headers(k,h){
+  const o={"Content-Type":"application/json","X-Bin-Versioning":"false"};
+  o[h||"X-Master-Key"]=k;return o;
+}
 async function pull(quiet){
   if(!sync)return;
   try{
-    const r=await fetch(`https://api.jsonbin.io/v3/b/${sync.bin}/latest`,{headers:headers(sync.key)});
-    if(!r.ok)throw 0;
-    const j=await r.json();
-    S=merge(S,j.record);localStorage.setItem(LS,JSON.stringify(S));render();
+    let rec=await hostGet();
+    if(rec&&rec.enc===1){
+      if(!sync.pass){if(!quiet)toast("This trip is encrypted — passphrase missing");return;}
+      try{rec=await unseal(rec,sync.pass,sync.bin||sync.path);}
+      catch(x){if(!quiet)toast("Wrong passphrase for this trip");return;}
+    }
+    S=merge(S,rec);persist();render();
     if(!quiet)toast("Up to date");
-  }catch(e){if(!quiet)toast("Couldn't reach the sync bin");}
+  }catch(e){if(!quiet)toast("Couldn't reach the sync host");}
 }
 async function push(){
   if(!sync)return;
-  try{await fetch(`https://api.jsonbin.io/v3/b/${sync.bin}`,{method:"PUT",headers:headers(sync.key),body:JSON.stringify(S)});}
-  catch(e){}
+  try{
+    const body=sync.pass?await seal(S,sync.pass,sync.bin||sync.path):S;
+    await hostPut(body);
+  }catch(e){}
 }
 function queuePush(){if(!sync)return;clearTimeout(pushTimer);pushTimer=setTimeout(async()=>{await pull(true);await push();},900);}
 const enc=o=>btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/=+$/,"");
@@ -874,6 +1161,32 @@ const dec=s=>JSON.parse(decodeURIComponent(escape(atob(s))));
 function sheet2(title,html){$("#sheet2Title").textContent=title;$("#sheet2Body").innerHTML=html;$("#sheet2").classList.add("on");}
 $("#closeSheet2").onclick=()=>$("#sheet2").classList.remove("on");
 
+$("#openFb").onclick=()=>{
+  sheet2("Start sync",`
+    <ol class="note" style="padding-left:18px;margin:0 0 16px">
+      <li>Go to console.firebase.google.com and create a project. Stay on the free Spark plan — no card, so it can never bill you.</li>
+      <li>Build → Realtime Database → Create Database → <b>Start in locked mode</b>.</li>
+      <li>Open the <b>Rules</b> tab, paste exactly this, and Publish:</li>
+    </ol>
+    <textarea readonly id="ruleBox" style="width:100%;height:120px;font-family:'IBM Plex Mono',monospace;font-size:12px;padding:10px;border:1.5px solid var(--line);border-radius:11px;background:var(--card)">{ "rules": { "trips": { "$id": { ".read": true, ".write": true } } } }</textarea>
+    <p class="note" style="margin:8px 0 16px">Those rules look open, but each trip lives at a random 32-character address nobody can guess or list — and the contents are encrypted on your phone before they're sent. Firebase stores scrambled text.</p>
+    <label class="f"><span>Database URL</span><input id="fbDb" placeholder="https://yourproject-default-rtdb.firebaseio.com" autocomplete="off"></label>
+    <label class="f"><span>Trip passphrase</span><input id="fbPass" placeholder="something you'll text the group" autocomplete="off"></label>
+    <p class="note" style="margin-bottom:14px">Lose the passphrase and the data is unrecoverable. Export a backup before the trip.</p>
+    <button class="btn teal" id="fbGo">Turn on sync</button>`);
+  $("#fbGo").onclick=async()=>{
+    const db=$("#fbDb").value.trim().replace(/\/+$/,""), pass=$("#fbPass").value.trim();
+    if(!/^https:\/\/.+firebase(io|database)\S*\.(com|app)$/.test(db))return toast("That doesn't look like a database URL");
+    if(!pass)return toast("Set a passphrase");
+    const path=[...crypto.getRandomValues(new Uint8Array(16))].map(b=>b.toString(16).padStart(2,"0")).join("");
+    $("#fbGo").textContent="Connecting…";
+    sync={host:"fb",db,path,pass};
+    try{
+      await hostPut(await seal(S,pass,path));
+      saveSync();$("#sheet2").classList.remove("on");render();toast("Sync on — share the code");
+    }catch(e){sync=null;$("#fbGo").textContent="Turn on sync";toast("Couldn't write — check the URL and rules");}
+  };
+};
 $("#openHost").onclick=()=>{
   sheet2("Start sync",`
     <div class="warn"><b>Read this first.</b> The trip code contains your JSONBin key. Anyone you send it to can read and write that bin. Make a free JSONBin account used only for this trip — don't reuse a key tied to anything else.</div>
@@ -883,17 +1196,26 @@ $("#openHost").onclick=()=>{
       <li>Paste it below. The app creates the bin for you.</li>
     </ol>
     <label class="f"><span>JSONBin master key</span><input id="hKey" placeholder="$2a$10$..." autocomplete="off"></label>
+    <label class="f"><span>Trip passphrase</span><input id="hPass" placeholder="something you'll text the group" autocomplete="off"></label>
+    <p class="note" style="margin-bottom:14px">Everything is encrypted on this phone before it's sent. The host stores scrambled text — real names and amounts never leave here in readable form. Lose the passphrase and the data is gone for good.</p>
     <button class="btn teal" id="hGo">Create the shared bin</button>`);
   $("#hGo").onclick=async()=>{
     const k=$("#hKey").value.trim();if(!k)return toast("Paste the key");
     $("#hGo").textContent="Creating…";
     try{
-      const r=await fetch("https://api.jsonbin.io/v3/b",{method:"POST",
-        headers:{...headers(k),"X-Bin-Name":"tripsplit-"+(S.name||"trip"),"X-Bin-Private":"true"},
-        body:JSON.stringify(S)});
+      const pass=$("#hPass").value.trim();
+      if(!pass){$("#hGo").textContent="Create the shared bin";return toast("Set a passphrase");}
+      let r,hdr="X-Master-Key";
+      for(const h of ["X-Master-Key","X-Access-Key"]){
+        r=await fetch("https://api.jsonbin.io/v3/b",{method:"POST",
+          headers:{...headers(k,h),"X-Bin-Name":"tripsplit-"+(S.name||"trip"),"X-Bin-Private":"true"},
+          body:JSON.stringify({enc:0,placeholder:true})});
+        if(r.ok){hdr=h;break;}
+      }
       if(!r.ok)throw 0;
       const j=await r.json();
-      sync={bin:j.metadata.id,key:k};localStorage.setItem(LSYNC,JSON.stringify(sync));
+      sync={bin:j.metadata.id,key:k,hdr,pass};saveSync();
+      await push();
       $("#sheet2").classList.remove("on");render();toast("Sync is on — share the code");
     }catch(e){$("#hGo").textContent="Create the shared bin";toast("JSONBin rejected that key");}
   };
@@ -906,14 +1228,16 @@ $("#openJoin").onclick=()=>{
   $("#jGo").onclick=async()=>{
     try{
       const o=dec($("#jCode").value.trim());
-      if(!o.bin||!o.key)throw 0;
-      sync=o;localStorage.setItem(LSYNC,JSON.stringify(sync));
+      if(!(o.host==="fb"?(o.db&&o.path):(o.bin&&o.key)))throw 0;
+      sync=o;saveSync();
       await pull(true);$("#sheet2").classList.remove("on");render();toast("Joined — everything's synced");
     }catch(e){toast("That code didn't work");}
   };
 };
 $("#shareCode").onclick=async()=>{
-  const code=enc(sync);
+  const code=enc(sync.host==="fb"
+    ?{host:"fb",db:sync.db,path:sync.path,pass:sync.pass}
+    :{bin:sync.bin,key:sync.shareKey||sync.key,hdr:sync.shareKey?"X-Access-Key":sync.hdr,pass:sync.pass});
   const txt=`Join our trip expenses — open the app and tap Trip → Enter code, then paste:\n\n${code}`;
   if(navigator.share){try{await navigator.share({text:txt});return;}catch(e){}}
   try{await navigator.clipboard.writeText(code);toast("Code copied");}
@@ -924,12 +1248,144 @@ $("#shareCode").onclick=async()=>{
   }
 };
 $("#pullNow").onclick=()=>pull(false);
+$("#saveShareKey").onclick=()=>{
+  const v=$("#shareKeyIn").value.trim();
+  sync.shareKey=v||undefined;saveSync();
+  toast(v?"Trip code will use this key":"Cleared — code falls back to your master key");
+};
 $("#stopSync").onclick=async()=>{
   if(!await ask("Stop syncing?","This phone keeps everything it already has, but changes stop travelling.","Stop syncing"))return;
-  sync=null;localStorage.removeItem(LSYNC);render();
+  sync=null;saveSync();render();
 };
 
+/* ---------------- live exchange rates (ECB via Frankfurter, no key) ----------------
+   A rate is looked up once per currency pair per date, then frozen onto the
+   expense. Re-opening an old expense never silently re-prices it. */
+const rateCache={};
+async function lookupRate(from,to,date){
+  if(!from||!to||from===to)return 1;
+  const key=`${from}>${to}@${date}`;
+  if(rateCache[key]!==undefined)return rateCache[key];
+  const hosts=["https://api.frankfurter.dev/v1","https://api.frankfurter.app"];
+  for(const h of hosts){
+    try{
+      const u=`${h}/${date}?base=${encodeURIComponent(from)}&symbols=${encodeURIComponent(to)}`;
+      const r=await fetch(u);
+      if(!r.ok)continue;
+      const j=await r.json();
+      const v=j&&j.rates&&j.rates[to];
+      if(typeof v==="number"&&isFinite(v)&&v>0){rateCache[key]=v;return v;}
+    }catch(e){}
+  }
+  rateCache[key]=null;return null;
+}
+
+/* ---------------- detail views ---------------- */
+function splitLabel(it){
+  return it.mode==="exact"?"Exact amounts":it.mode==="shares"?"Per head":"Evenly";
+}
+function detailRows(it){
+  const pm=paidMap(it),sm=shareMap(it);
+  const ids=[...new Set([...Object.keys(pm),...Object.keys(sm)])].filter(live);
+  return ids.map(id=>{
+    const paid=pm[id]||0,share=sm[id]||0,net=paid-share;
+    const heads=it.mode==="shares"?(it.parts?.[id]??1):null;
+    return {id,paid,share,net,heads};
+  }).sort((a,b)=>b.net-a.net);
+}
+function openDetail(id){
+  const it=S.items[id];if(!it)return;
+  const rows=detailRows(it),pm=paidMap(it);
+  const nPay=Object.keys(pm).length;
+  const heads=it.mode==="shares"?rows.reduce((a,r)=>a+(r.heads||0),0):null;
+  sheet2(it.desc||"Expense",`
+    <div class="card pad" style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline">
+        <span style="font-size:26px">${it.cat||"💶"}</span>
+        <span class="money" style="font-size:26px;font-weight:600">${fmtD(it.cents)}</span>
+      </div>
+      ${it.entered?`<div class="note" style="text-align:right;margin:2px 0 0">Paid ${fmt(it.entered.amt,it.entered.cur)} · 1 ${it.entered.cur} = ${it.entered.fx.toFixed(4)} ${S.cur}${it.entered.fxDate?` (ECB, ${it.entered.fxDate})`:" (manual)"}</div>`
+        :(dispCur()!==S.cur?`<div class="note" style="text-align:right;margin:2px 0 0">${fmt(it.cents)} as paid</div>`:"")}
+      <div class="note" style="margin-top:10px">${new Date(it.date+"T12:00").toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"})}
+        · ${splitLabel(it)}${heads?` across ${heads} ${heads===1?"person":"people"}`:""}
+        · ${nPay===1?"one payer":nPay+" payers"}</div>
+    </div>
+
+    <div class="eyebrow" style="margin-top:0">Who put the money down</div>
+    <div class="card">${Object.keys(pm).map(id=>`<div class="row" style="padding:12px 14px">
+      <span>${esc(nameOf(id))}</span><span class="money" style="font-weight:600">${fmtD(pm[id])}</span></div>`).join("")}</div>
+
+    <div class="eyebrow">Who it was split between</div>
+    <div class="card">${rows.filter(r=>r.share>0).map(r=>`<div class="row" style="padding:12px 14px">
+      <span>${esc(nameOf(r.id))}${r.heads?`<span style="color:var(--muted);font-size:13px"> · ${r.heads} ${r.heads===1?"head":"heads"}</span>`:""}</span>
+      <span style="text-align:right">
+        <span class="money" style="font-weight:600">${fmtD(r.share)}</span>
+        <div class="note" style="margin:0">${Math.round(r.share/it.cents*100)}% of the bill</div>
+      </span></div>`).join("")}</div>
+
+    <div class="eyebrow">Effect on balances</div>
+    <div class="card">${rows.map(r=>`<div class="row" style="padding:12px 14px">
+      <span>${esc(nameOf(r.id))}</span>
+      <span style="text-align:right">
+        <span class="money ${r.net>0?"pos":r.net<0?"neg":""}" style="font-weight:600">${Math.abs(r.net)<1?"—":fmtD(r.net)}</span>
+        <div class="note" style="margin:0">paid ${fmtD(r.paid)} · owed ${fmtD(r.share)}</div>
+      </span></div>`).join("")}</div>
+
+    <div class="btnrow" style="margin-top:16px">
+      <button class="btn ghost" data-detail-share="${it.id}">Share this</button>
+      <button class="btn teal" data-detail-edit="${it.id}">Edit</button>
+    </div>`);
+  $("#sheet2Body").onclick=e=>{
+    const ed=e.target.closest("[data-detail-edit]"),sh=e.target.closest("[data-detail-share]");
+    if(ed){$("#sheet2").classList.remove("on");setTimeout(()=>openSheet(ed.dataset.detailEdit),160);}
+    if(sh){$("#sheet2").classList.remove("on");setTimeout(()=>doShare(buildItem(sh.dataset.detailShare),S.name),160);}
+  };
+}
+function openPerson(id){
+  const rows=[];let paid=0,share=0;
+  items().forEach(it=>{
+    const p=paidMap(it)[id]||0,sh=shareMap(it)[id]||0;
+    paid+=p;share+=sh;
+    if(p||sh)rows.push({it,p,sh});
+  });
+  const net=paid-share;
+  const owed=settlements().filter(x=>x.from===id||x.to===id);
+  sheet2(nameOf(id),`
+    <div class="card pad" style="margin-bottom:12px">
+      <div class="row" style="padding:8px 0"><span>Put in</span><span class="money" style="font-weight:600">${fmtD(paid)}</span></div>
+      <div class="row" style="padding:8px 0"><span>Their share</span><span class="money" style="font-weight:600">${fmtD(share)}</span></div>
+      <div class="row" style="padding:8px 0"><span style="font-weight:700">${net>0?"Is owed":net<0?"Owes":"Settled"}</span>
+        <span class="money ${net>0?"pos":net<0?"neg":""}" style="font-weight:700;font-size:19px">${Math.abs(net)<1?"—":fmtD(Math.abs(net))}</span></div>
+    </div>
+    ${owed.length?`<div class="eyebrow" style="margin-top:0">To square up</div><div class="card">${owed.map(x=>
+      `<div class="row" style="padding:12px 14px"><span>${esc(nameOf(x.from))} → ${esc(nameOf(x.to))}</span>
+       <span class="money" style="font-weight:600">${fmtD(x.v)}</span></div>`).join("")}</div>`:""}
+    <div class="eyebrow">Every expense they touched</div>
+    <div class="card">${rows.reverse().map(r=>`<button class="row" style="padding:12px 14px;width:100%;text-align:left" data-open="${r.it.id}">
+      <span style="flex:1;min-width:0"><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block">${r.it.cat||"💶"} ${esc(r.it.desc||"Expense")}</span>
+        <span class="note" style="margin:0">${r.p?`put in ${fmtD(r.p)}`:"put in —"} · share ${fmtD(r.sh)}</span></span>
+      <span class="money ${r.p-r.sh>0?"pos":r.p-r.sh<0?"neg":""}" style="font-weight:600">${Math.abs(r.p-r.sh)<1?"—":fmtD(r.p-r.sh)}</span>
+    </button>`).join("")}</div>
+    <button class="btn ghost" style="margin-top:16px" data-pshare="${id}">Share this statement</button>`);
+  $("#sheet2Body").onclick=e=>{
+    const o=e.target.closest("[data-open]"),ps=e.target.closest("[data-pshare]");
+    if(o){$("#sheet2").classList.remove("on");setTimeout(()=>openDetail(o.dataset.open),160);}
+    if(ps){$("#sheet2").classList.remove("on");setTimeout(()=>doShare(buildPerson(ps.dataset.pshare),S.name),160);}
+  };
+}
+
 /* ---------------- shareable text reports ---------------- */
+function buildItem(id){
+  const it=S.items[id];if(!it)return "";
+  const pm=paidMap(it),rows=detailRows(it);
+  const L=[`${S.name} — ${it.desc||"Expense"}`,
+    `${fmtD(it.cents)}${dispCur()!==S.cur?` (${fmt(it.cents)} as paid)`:""} · ${new Date(it.date+"T12:00").toLocaleDateString()}`,
+    `Split ${splitLabel(it).toLowerCase()}`,"","PAID BY",
+    ...Object.keys(pm).map(id=>`  ${nameOf(id)} — ${fmtD(pm[id])}`),
+    "","EACH SHARE",
+    ...rows.filter(r=>r.share>0).map(r=>`  ${nameOf(r.id)}${r.heads?` (${r.heads})`:""} — ${fmtD(r.share)} · ${Math.round(r.share/it.cents*100)}%`)];
+  return L.join("\n");
+}
 function money2(cents){return dispCur()===S.cur?fmt(cents):`${fmtD(cents)} (${fmt(cents)})`;}
 function head(){
   const tot=items().filter(i=>i.kind!=="pay").reduce((a,i)=>a+i.cents,0);
@@ -970,7 +1426,8 @@ function buildLog(){
     if(it.date!==day){day=it.date;L.push(new Date(day+"T12:00").toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"}));}
     L.push(it.kind==="pay"
       ?`  🤝 ${it.desc} — ${fmt(it.cents)}`
-      :`  ${it.cat||"💶"} ${it.desc||"Expense"} — ${fmt(it.cents)} · ${payerLine(it)}`);
+      :[`  ${it.cat||"💶"} ${it.desc||"Expense"} — ${fmtD(it.cents)} · ${payerLine(it)}`,
+         `      split ${splitLabel(it).toLowerCase()}: ${detailRows(it).filter(r=>r.share>0).map(r=>`${nameOf(r.id)} ${fmtD(r.share)}`).join(", ")}`].join("\n"));
   });
   return L.join("\n");
 }
@@ -1020,6 +1477,10 @@ render();
 if(sync)pull(true);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden&&sync)pull(true);});
 window.addEventListener("focus",()=>{if(sync)pull(true);});
+</script>
+<script>
+if("serviceWorker" in navigator)
+  navigator.serviceWorker.register("./sw.js").catch(()=>{});
 </script>
 </body>
 </html>
