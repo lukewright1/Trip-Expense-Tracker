@@ -270,12 +270,13 @@ nav button.on .ic{filter:drop-shadow(0 0 8px rgba(242,168,29,.8))}
     <div class="card pad">
       <label class="f"><span>Trip name</span><input id="setName" placeholder="Croatia 2026"></label>
       <div class="split2">
-        <label class="f"><span>Currency</span><input id="setCur" maxlength="4" placeholder="USD"></label>
-        <label class="f"><span>Second currency</span><input id="setAlt" maxlength="4" placeholder="optional"></label>
+        <label class="f"><span>Recorded in</span><select id="setCur"></select></label>
+        <label class="f"><span>Second currency</span><select id="setAlt"></select></label>
       </div>
       <label class="f" id="rateRow"><span>1 <b id="curA">USD</b> = ? <b id="curB">—</b></span>
         <div class="split2"><input id="setRate" inputmode="decimal" placeholder="1.00">
         <button class="btn ghost" style="flex:0 0 118px" id="liveRate">Today's rate</button></div></label>
+      <p class="note" id="curHint" style="margin:-8px 0 16px"></p>
       <label class="f"><span>Show amounts in</span></label>
       <div class="seg" id="dispCurSeg" style="margin:-8px 0 8px"></div>
       <p class="note" style="margin:0 0 16px">Totals, balances and settle-up all display in this. Expenses stay recorded in <b id="bookCur">EUR</b> exactly as they were paid.</p>
@@ -414,6 +415,41 @@ nav button.on .ic{filter:drop-shadow(0 0 8px rgba(242,168,29,.8))}
 
 <script>
 "use strict";
+const CURRENCIES=[
+ ["USD","US Dollar","United States","$"],
+ ["EUR","Euro","Eurozone \u2014 France, Italy, Spain, Germany, Greece, Croatia\u2026","\u20ac"],
+ ["GBP","British Pound","United Kingdom","\u00a3"],
+ ["CAD","Canadian Dollar","Canada","$"],
+ ["MXN","Mexican Peso","Mexico","$"],
+ ["JPY","Japanese Yen","Japan","\u00a5"],
+ ["AUD","Australian Dollar","Australia","$"],
+ ["NZD","New Zealand Dollar","New Zealand","$"],
+ ["CHF","Swiss Franc","Switzerland","Fr"],
+ ["SEK","Swedish Krona","Sweden","kr"],
+ ["NOK","Norwegian Krone","Norway","kr"],
+ ["DKK","Danish Krone","Denmark","kr"],
+ ["ISK","Icelandic Kr\u00f3na","Iceland","kr"],
+ ["CZK","Czech Koruna","Czechia","K\u010d"],
+ ["PLN","Polish Z\u0142oty","Poland","z\u0142"],
+ ["HUF","Hungarian Forint","Hungary","Ft"],
+ ["RON","Romanian Leu","Romania","lei"],
+ ["BGN","Bulgarian Lev","Bulgaria","\u043b\u0432"],
+ ["TRY","Turkish Lira","T\u00fcrkiye","\u20ba"],
+ ["ILS","Israeli Shekel","Israel","\u20aa"],
+ ["ZAR","South African Rand","South Africa","R"],
+ ["BRL","Brazilian Real","Brazil","R$"],
+ ["INR","Indian Rupee","India","\u20b9"],
+ ["CNY","Chinese Yuan","China","\u00a5"],
+ ["HKD","Hong Kong Dollar","Hong Kong","$"],
+ ["SGD","Singapore Dollar","Singapore","$"],
+ ["KRW","South Korean Won","South Korea","\u20a9"],
+ ["THB","Thai Baht","Thailand","\u0e3f"],
+ ["MYR","Malaysian Ringgit","Malaysia","RM"],
+ ["IDR","Indonesian Rupiah","Indonesia","Rp"],
+ ["PHP","Philippine Peso","Philippines","\u20b1"]
+];
+const curInfo=c=>CURRENCIES.find(x=>x[0]===String(c||"").toUpperCase());
+const curName=c=>{const i=curInfo(c);return i?i[1]:c;};
 const CATS=[["🍽️","Food"],["🍸","Drinks"],["🛒","Groceries"],["⛽","Fuel"],["⚓","Mooring"],["🛥️","Charter"],["🚕","Transport"],["🏨","Lodging"],["🎟️","Activity"],["💶","Other"]];
 const LS="tripsplit.v1", LSYNC="tripsplit.sync.v1", LSTORE="tripsplit.trips.v1";
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
@@ -478,7 +514,7 @@ function fmt(cents,cur){
   const s=(Math.abs(cents)/100).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,",");
   return (cents<0?"-":"")+(cur===false?"":sym(cur||S.cur))+s;
 }
-function sym(c){return ({EUR:"€",USD:"$",GBP:"£",HRK:"kn"})[String(c).toUpperCase()]||(c+" ");}
+function sym(c){const i=curInfo(c);return i?i[3]:(c?c+" ":"");}
 const people=()=>Object.values(S.people).filter(p=>!p.del).sort((a,b)=>a.made-b.made);
 const items=()=>Object.values(S.items).filter(i=>!i.del).sort((a,b)=>b.date.localeCompare(a.date)||b.made-a.made);
 
@@ -556,7 +592,13 @@ function render(){
   const n=people().length;
   $("#tripSub").textContent=n?`${n} ${n===1?"person":"people"} · ${spend.length} ${spend.length===1?"expense":"expenses"}`:"add people to start";
   renderLog(list);renderCatBreak();renderFilter();renderBal();renderSettle();renderPeople();renderTrips();renderSync();
-  $("#setName").value=S.name||"";$("#setCur").value=S.cur;$("#setAlt").value=S.alt||"";
+  $("#setName").value=S.name||"";
+  const curOpts=(cur,none)=>(none?`<option value="">${none}</option>`:"")+
+    CURRENCIES.map(([c,n,where,sy])=>
+      `<option value="${c}"${cur===c?" selected":""}>${c} \u00b7 ${n} (${sy}) \u2014 ${where}</option>`).join("");
+  $("#setCur").innerHTML=curOpts(S.cur,null);
+  $("#setAlt").innerHTML=curOpts(S.alt,"None \u2014 single currency");
+  curHint();
   $("#setRate").value=S.rate;$("#curA").textContent=S.cur;$("#curB").textContent=S.alt||"—";
   $("#dispCurSeg").innerHTML=curSeg();$("#bookCur").textContent=S.cur;
   showIf("#dispCurSeg",twoCur());
@@ -690,7 +732,8 @@ function renderPeople(){
   const ps=people();
   $("#peopleBody").innerHTML=ps.length?ps.map(p=>`<div style="padding:13px 14px;border-bottom:1px solid var(--line)">
     <div style="display:flex;align-items:center;gap:10px">
-      <span style="flex:1;font-weight:600">${esc(p.name)}</span>
+      <input data-name="${p.id}" value="${esc(p.name)}" autocomplete="off"
+        style="flex:1;font-weight:600;padding:8px 10px;min-width:0">
       <span style="display:flex;align-items:center;gap:6px">
         <span style="font-size:12px;color:var(--muted)">people</span>
         <input data-size="${p.id}" inputmode="numeric" value="${p.size||1}" style="width:52px;text-align:center;padding:8px">
@@ -956,22 +999,36 @@ $("#settleBody").onclick=async e=>{
 };
 
 /* ---------------- trip settings ---------------- */
-$("#liveRate").onclick=async()=>{
-  if(!S.alt)return toast("Set a second currency first");
-  $("#liveRate").textContent="…";
-  const d=new Date().toISOString().slice(0,10);
-  const v=await lookupRate(S.cur,S.alt,d);
+function curHint(){
+  const a=$("#setCur").value,b=$("#setAlt").value;
+  const two=b&&b!==a;
+  $("#curHint").innerHTML=two
+    ?`Expenses are stored in <b>${esc(curName(a))}</b>. Enter one in <b>${esc(curName(b))}</b> and it converts at that day's ECB rate.`
+    :`Single currency: <b>${esc(curName(a))}</b>. Add a second only if you'll be paying in two.`;
+  $("#rateRow").style.display=two?"":"none";
+  $("#curA").textContent=a;$("#curB").textContent=b||"\u2014";
+}
+async function fetchLiveRate(){
+  const a=$("#setCur").value,b=$("#setAlt").value;
+  if(!b)return toast("Pick a second currency first");
+  if(a===b)return toast("Same currency \u2014 nothing to convert");
+  $("#liveRate").textContent="\u2026";
+  const v=await lookupRate(a,b,new Date().toISOString().slice(0,10));
   $("#liveRate").textContent="Today's rate";
-  if(v){$("#setRate").value=v.toFixed(4);toast(`1 ${S.cur} = ${v.toFixed(4)} ${S.alt}`);}
-  else toast("Couldn't reach the rate service");
-};
+  if(v){$("#setRate").value=v.toFixed(4);toast(`1 ${a} = ${v.toFixed(4)} ${b}`);}
+  else toast("Couldn't reach the rate service \u2014 enter it manually");
+}
+$("#liveRate").onclick=fetchLiveRate;
+$("#setAlt").onchange=()=>{curHint();const a=$("#setCur").value,b=$("#setAlt").value;if(b&&b!==a)fetchLiveRate();};
+$("#setCur").onchange=()=>{curHint();const a=$("#setCur").value,b=$("#setAlt").value;if(b&&b!==a)fetchLiveRate();};
 $("#saveTrip").onclick=()=>{
   const oldCur=S.cur;
   S.name=$("#setName").value.trim()||"Trip";
-  S.cur=($("#setCur").value.trim()||"USD").toUpperCase();
+  S.cur=($("#setCur").value||"USD").toUpperCase();
   if(oldCur!==S.cur&&items().length)
     setTimeout(()=>toast(`Amounts already logged are now read as ${S.cur}, not reconverted`),400);
-  S.alt=$("#setAlt").value.trim().toUpperCase();
+  S.alt=($("#setAlt").value||"").toUpperCase();
+  if(S.alt===S.cur)S.alt="";
   S.rate=S.alt?(parseFloat($("#setRate").value)||1):1;
   if(!S.alt)S.dispCur=S.cur;
   S.metaUpd=now();save();toast("Trip saved");
@@ -1019,6 +1076,13 @@ function addPerson(){
 $("#addPerson").onclick=addPerson;
 $("#newPerson").onkeydown=e=>{if(e.key==="Enter")addPerson();};
 $("#peopleBody").oninput=e=>{
+  const nm=e.target.closest("[data-name]");
+  if(nm){
+    const p=S.people[nm.dataset.name];
+    const val=nm.value.trim();
+    if(val){S.people[p.id]={...p,name:val,upd:now()};persist();queuePush();}
+    return;
+  }
   const v=e.target.closest("[data-venmo]");
   if(v){
     const p=S.people[v.dataset.venmo];
@@ -1030,6 +1094,9 @@ $("#peopleBody").oninput=e=>{
   const p=S.people[i.dataset.size];
   S.people[p.id]={...p,size:n,upd:now()};
   persist();queuePush();
+};
+$("#peopleBody").onchange=e=>{
+  if(e.target.closest("[data-name]"))render();
 };
 $("#peopleBody").onclick=async e=>{
   const b=e.target.closest("[data-rm]");if(!b)return;
@@ -1222,28 +1289,34 @@ $("#openHost").onclick=()=>{
 };
 $("#openJoin").onclick=()=>{
   sheet2("Enter code",`
-    <p class="note" style="margin-bottom:14px">Paste the trip code the organizer sent you. Anything already on this phone gets merged in, not wiped.</p>
+    <p class="note" style="margin-bottom:14px">Normally you'd just tap the organizer's link. Use this only if the link didn't open the app — paste the whole thing or just the code.</p>
     <label class="f"><span>Trip code</span><input id="jCode" placeholder="paste here" autocomplete="off"></label>
     <button class="btn teal" id="jGo">Join this trip</button>`);
   $("#jGo").onclick=async()=>{
     try{
-      const o=dec($("#jCode").value.trim());
+      const raw=$("#jCode").value.trim();
+      const o=dec((raw.match(/[#&]join=([A-Za-z0-9+/=_-]+)/)||[,raw])[1]);
       if(!(o.host==="fb"?(o.db&&o.path):(o.bin&&o.key)))throw 0;
       sync=o;saveSync();
       await pull(true);$("#sheet2").classList.remove("on");render();toast("Joined — everything's synced");
     }catch(e){toast("That code didn't work");}
   };
 };
+function joinLink(code){
+  const base=location.origin+location.pathname.replace(/index\.html$/,"");
+  return `${base}#join=${code}`;
+}
 $("#shareCode").onclick=async()=>{
   const code=enc(sync.host==="fb"
     ?{host:"fb",db:sync.db,path:sync.path,pass:sync.pass}
     :{bin:sync.bin,key:sync.shareKey||sync.key,hdr:sync.shareKey?"X-Access-Key":sync.hdr,pass:sync.pass});
-  const txt=`Join our trip expenses — open the app and tap Trip → Enter code, then paste:\n\n${code}`;
-  if(navigator.share){try{await navigator.share({text:txt});return;}catch(e){}}
-  try{await navigator.clipboard.writeText(code);toast("Code copied");}
+  const link=joinLink(code);
+  const txt=`${S.name} — shared expenses\n\nTap to join, then add it to your home screen:\n${link}`;
+  if(navigator.share){try{await navigator.share({text:txt});return;}catch(e){if(e.name==="AbortError")return;}}
+  try{await navigator.clipboard.writeText(txt);toast("Invite copied — paste it into a message");}
   catch(e){
-    sheet2("Trip code",`<p class="note" style="margin-bottom:12px">Press and hold to select, then send it to the group.</p>
-      <textarea readonly id="codeBox" style="width:100%;height:150px;font-family:'IBM Plex Mono',monospace;font-size:13px;padding:12px;border:1.5px solid var(--line);border-radius:11px;background:var(--card)">${esc(code)}</textarea>`);
+    sheet2("Invite",`<p class="note" style="margin-bottom:12px">Press and hold to select all, then send it to the group.</p>
+      <textarea readonly id="codeBox" style="width:100%;height:170px;font-size:13px;padding:12px;border:1.5px solid var(--line);border-radius:11px;background:var(--card)">${esc(txt)}</textarea>`);
     setTimeout(()=>{const t=$("#codeBox");t.focus();t.setSelectionRange(0,t.value.length);},120);
   }
 };
@@ -1473,7 +1546,25 @@ $("#shareBtn").onclick=()=>{
 };
 
 /* ---------------- boot ---------------- */
+async function joinFromLink(){
+  const m=(location.hash||"").match(/[#&]join=([A-Za-z0-9+/=_-]+)/);
+  if(!m)return false;
+  history.replaceState(null,"",location.pathname+location.search);
+  let o;try{o=dec(m[1]);}catch(e){toast("That invite link was incomplete");return false;}
+  if(!(o.host==="fb"?(o.db&&o.path):(o.bin&&o.key))){toast("That invite link didn't work");return false;}
+  const already=Object.values(syncMap()).some(x=>x&&(x.path===o.path||x.bin===o.bin));
+  if(already){toast("You're already on this trip");return false;}
+  if(!await ask("Join this trip?","Shared expenses will sync to this phone. Anything already here stays put.","Join"))return false;
+  // land it in a fresh trip so nothing local is overwritten
+  const t=blank();t.name="Shared trip";
+  store.trips[t.tripId]=t;store.active=t.tripId;S=t;
+  sync=o;saveSync();persist();
+  await pull(false);render();
+  document.querySelector('nav button[data-tab="log"]').click();
+  return true;
+}
 render();
+joinFromLink();
 if(sync)pull(true);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden&&sync)pull(true);});
 window.addEventListener("focus",()=>{if(sync)pull(true);});
