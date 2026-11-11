@@ -360,6 +360,14 @@ nav button.on .ic{filter:drop-shadow(0 0 8px rgba(242,168,29,.8))}
   <div class="panel">
     <div class="phead"><h2 id="sheetTitle">Add expense</h2><button class="x" id="closeSheet" aria-label="Close">✕</button></div>
     <div class="pbody">
+      <div id="shotWrap"></div>
+      <div class="btnrow" style="margin:0 0 12px">
+        <button class="btn ghost" id="scanBtn">Scan a receipt</button>
+        <button class="btn ghost" id="attachBtn">Attach a photo</button>
+      </div>
+      <input type="file" id="scanIn" accept="image/*" capture="environment" style="display:none">
+      <input type="file" id="attachIn" accept="image/*" style="display:none">
+      <div id="scanOut"></div>
       <input class="big" id="fAmt" inputmode="decimal" placeholder="0.00">
       <div class="seg" id="fCurSeg" style="margin:10px 0 18px"></div>
       <div class="note" id="fConv" style="text-align:center;margin:-10px 0 18px;min-height:18px"></div>
@@ -654,7 +662,7 @@ function renderLog(all){
     const alt=otherCur()&&S.rate?`<div class="b money">${fmt(toOther(it.cents),otherCur())}</div>`:"";
     h+=`<button class="item" data-edit="${it.id}">
       <div class="cat">${it.kind==="pay"?"🤝":it.cat||"💶"}</div>
-      <div class="mid"><div class="t">${esc(it.desc||"Expense")}</div><div class="s">${esc(sub)}</div></div>
+      <div class="mid"><div class="t">${it.receipt?"\ud83e\uddfe ":""}${esc(it.desc||"Expense")}</div><div class="s">${esc(sub)}</div></div>
       <div class="amt"><div class="a money">${fmtD(it.cents)}</div>${alt}</div></button>`;
     const nx=list[list.indexOf(it)+1];
     if(!nx||nx.date!==day)h+=`</div>`;
@@ -746,7 +754,7 @@ function renderPeople(){
     </div>
     <div style="display:flex;align-items:center;gap:6px;margin-top:9px">
       <span style="font-size:12px;color:var(--muted);width:58px;flex:none">Venmo</span>
-      <input data-venmo="${p.id}" value="${esc(p.venmo||"")}" placeholder="@their-handle" autocomplete="off" style="padding:8px 10px;font-size:14px">
+      <input data-venmo="${p.id}" value="${p.venmo?"@"+esc(p.venmo):""}" placeholder="@handle from their Venmo profile" autocomplete="off" style="padding:8px 10px;font-size:14px">
     </div></div>`).join("")
     :`<div class="empty" style="padding:26px">Nobody added yet.</div>`;
 }
@@ -793,6 +801,10 @@ function openSheet(id){
     if(!draft.payers.length)draft.payers=[people()[0].id];
   }
   draft.paidTouched=Object.keys(draft.paid||{}).length>1;
+  $("#scanOut").innerHTML="";
+  draft.pendingImg=null;draft.dropReceipt=false;
+  paintReceipt();
+  if(ex&&ex.receipt)getReceipt(ex.id).then(d=>{if(d&&draft&&draft.id===ex.id){draft.pendingImg=d;paintReceipt();}});
   $("#sheetTitle").textContent=ex?"Edit expense":"Add expense";
   $("#delItem").style.display=ex?"block":"none";
   $("#fAmt").value=draft.cents?(draft.cents/100).toFixed(2):"";
@@ -896,6 +908,21 @@ function sumNote(){
     n.textContent=`Split ${tw} ways`;
   }
 }
+function paintReceipt(){
+  const el=$("#shotWrap");if(!el)return;
+  const src=draft.pendingImg;
+  el.innerHTML=src
+    ?`<div style="position:relative;margin-bottom:12px">
+        <img src="${src}" style="width:100%;max-height:210px;object-fit:cover;border-radius:12px;border:1.5px solid var(--line)">
+        <button id="dropShot" class="x" style="position:absolute;top:8px;right:8px">\u2715</button></div>`
+    :"";
+  const d=$("#dropShot");
+  if(d)d.onclick=()=>{draft.pendingImg=null;draft.receipt=false;draft.dropReceipt=true;paintReceipt();};
+}
+$("#scanBtn").onclick=()=>$("#scanIn").click();
+$("#attachBtn").onclick=()=>$("#attachIn").click();
+$("#scanIn").onchange=e=>{const f=e.target.files[0];e.target.value="";if(f)scanReceipt(f,true);};
+$("#attachIn").onchange=e=>{const f=e.target.files[0];e.target.value="";if(f)scanReceipt(f,false);};
 $("#fAmt").oninput=()=>{paintConv();sumNote();if(!draft.paidTouched){evenPay();paintPaid();}else paidSum();};
 $("#fCurSeg").onclick=async e=>{
   const b=e.target.closest("[data-cur]");if(!b)return;
@@ -950,12 +977,17 @@ $("#saveItem").onclick=()=>{
   draft.cents=c;draft.desc=$("#fDesc").value.trim();draft.date=$("#fDate").value||draft.date;
   draft.entered=draft.cur===S.cur?null:{cur:draft.cur,amt:readAmt(),fx:draftRate(),fxDate:draft.fxDate||null};
   draft.upd=now();
-  S.items[draft.id]=draft;closeSheet();save();toast("Saved");
+  const img=draft.pendingImg, drop=draft.dropReceipt, id=draft.id;
+  delete draft.pendingImg;delete draft.dropReceipt;
+  draft.receipt=!!img;
+  S.items[id]=draft;closeSheet();save();toast("Saved");
+  if(img)saveReceipt(id,img);else if(drop)dropReceipt(id);
 };
 $("#delItem").onclick=async()=>{
   const d=draft;
   if(!await ask("Delete this expense?",d.desc||"","Delete"))return;
   S.items[d.id]={...d,del:true,upd:now()};closeSheet();save();toast("Deleted");
+  dropReceipt(d.id);
 };
 $("#filterBar").onclick=e=>{
   const b=e.target.closest("[data-f]");if(!b)return;
@@ -982,12 +1014,20 @@ $("#settleBody").onclick=async e=>{
   const vp=e.target.closest("[data-venmopay]");
   if(vp){
     const [from,to,v]=vp.dataset.venmopay.split("|");
-    const usd=dispCur()==="USD"?toDisp(+v):(S.alt==="USD"?Math.round(+v*(S.rate||1)):+v);
-    const h=S.people[to].venmo;
-    const note=encodeURIComponent(`${S.name} — settling up`);
+    const usd=S.cur==="USD"?+v:(S.alt==="USD"?Math.round(+v*(S.rate||1)):+v);
+    const h=(S.people[to].venmo||"").trim().replace(/^@+/,"").replace(/^.*venmo\.com\/(u\/)?/,"").split(/[/?#\s]/)[0];
+    if(!h)return toast(`Add ${nameOf(to)}'s Venmo handle under Trip first`);
+    const note=encodeURIComponent(`${S.name} - settling up`);
     const amt=(usd/100).toFixed(2);
-    window.open(`https://venmo.com/${encodeURIComponent(h)}?txn=pay&amount=${amt}&note=${note}`,"_blank");
-    toast("Mark it settled once it sends");
+    // app scheme first (opens Venmo directly), web profile as the fallback
+    const app=`venmo://paycharge?txn=pay&recipients=${encodeURIComponent(h)}&amount=${amt}&note=${note}`;
+    const web=`https://venmo.com/u/${encodeURIComponent(h)}?txn=pay&amount=${amt}&note=${note}`;
+    let fell=false;
+    const t=setTimeout(()=>{if(!fell){fell=true;window.open(web,"_blank");}},900);
+    const onHide=()=>{fell=true;clearTimeout(t);document.removeEventListener("visibilitychange",onHide);};
+    document.addEventListener("visibilitychange",onHide);
+    location.href=app;
+    toast(`Sending ${fmt(usd,"USD")} to @${h} — tap Settle once it goes through`);
     return;
   }
   const b=e.target.closest("[data-pay]");if(!b)return;
@@ -1090,7 +1130,8 @@ $("#peopleBody").oninput=e=>{
   const v=e.target.closest("[data-venmo]");
   if(v){
     const p=S.people[v.dataset.venmo];
-    S.people[p.id]={...p,venmo:v.value.trim().replace(/^@/,""),upd:now()};
+    const clean=v.value.trim().replace(/^@+/,"").replace(/^.*venmo\.com\/(u\/)?/,"").split(/[/?#\s]/)[0];
+    S.people[p.id]={...p,venmo:clean,upd:now()};
     persist();queuePush();return;
   }
   const i=e.target.closest("[data-size]");if(!i)return;
@@ -1239,7 +1280,7 @@ $("#openFb").onclick=()=>{
       <li>Build → Realtime Database → Create Database → <b>Start in locked mode</b>.</li>
       <li>Open the <b>Rules</b> tab, paste exactly this, and Publish:</li>
     </ol>
-    <textarea readonly id="ruleBox" style="width:100%;height:120px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;padding:10px;border:1.5px solid var(--line);border-radius:11px;background:var(--card)">{ "rules": { "trips": { "$id": { ".read": true, ".write": true } } } }</textarea>
+    <textarea readonly id="ruleBox" style="width:100%;height:150px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;padding:10px;border:1.5px solid var(--line);border-radius:11px;background:var(--card)">{ "rules": { "trips": { "$id": { ".read": true, ".write": true } }, "receipts": { "$id": { ".read": true, ".write": true } } } }</textarea>
     <p class="note" style="margin:8px 0 16px">Those rules look open, but each trip lives at a random 32-character address nobody can guess or list — and the contents are encrypted on your phone before they're sent. Firebase stores scrambled text.</p>
     <label class="f"><span>Database URL</span><input id="fbDb" placeholder="https://yourproject-default-rtdb.firebaseio.com" autocomplete="off"></label>
     <label class="f"><span>Trip passphrase</span><input id="fbPass" placeholder="something you'll text the group" autocomplete="off"></label>
@@ -1335,6 +1376,179 @@ $("#stopSync").onclick=async()=>{
   sync=null;saveSync();render();
 };
 
+/* ---------------- receipt images ----------------
+   Images live OUTSIDE the trip record on purpose. The record syncs constantly;
+   photos would make every sync drag the whole album down with it. Each receipt
+   is encrypted on its own and fetched only when somebody opens it. */
+const IDB="tripsplit.receipts";
+function idb(){
+  return new Promise((res,rej)=>{
+    const r=indexedDB.open(IDB,1);
+    r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains("img"))r.result.createObjectStore("img");};
+    r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);
+  });
+}
+async function idbPut(k,v){try{const d=await idb();return new Promise(r=>{const t=d.transaction("img","readwrite");t.objectStore("img").put(v,k);t.oncomplete=()=>r(true);t.onerror=()=>r(false);});}catch(e){return false;}}
+async function idbGet(k){try{const d=await idb();return new Promise(r=>{const t=d.transaction("img","readonly");const q=t.objectStore("img").get(k);q.onsuccess=()=>r(q.result||null);q.onerror=()=>r(null);});}catch(e){return null;}}
+async function idbDel(k){try{const d=await idb();return new Promise(r=>{const t=d.transaction("img","readwrite");t.objectStore("img").delete(k);t.oncomplete=()=>r(true);t.onerror=()=>r(false);});}catch(e){return false;}}
+
+const imgMem={};
+function receiptKey(id){return `${S.tripId}:${id}`;}
+function receiptUrl(id){
+  if(!sync||sync.host!=="fb")return null;
+  return `${sync.db.replace(/\/+$/,"")}/receipts/${sync.path}/${id}.json`;
+}
+async function saveReceipt(itemId,dataUrl){
+  await idbPut(receiptKey(itemId),dataUrl);
+  imgMem[receiptKey(itemId)]=dataUrl;
+  const u=receiptUrl(itemId);
+  if(!u)return;
+  try{
+    const body=sync.pass?await seal({d:dataUrl},sync.pass,sync.path):{d:dataUrl};
+    await fetch(u,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+  }catch(e){}
+}
+async function getReceipt(itemId){
+  const k=receiptKey(itemId);
+  if(imgMem[k])return imgMem[k];
+  const local=await idbGet(k);
+  if(local){imgMem[k]=local;return local;}
+  const u=receiptUrl(itemId);
+  if(!u)return null;
+  try{
+    const r=await fetch(u);if(!r.ok)return null;
+    let box=await r.json();if(!box)return null;
+    if(box.enc===1)box=await unseal(box,sync.pass,sync.path);
+    if(!box||!box.d)return null;
+    imgMem[k]=box.d;idbPut(k,box.d);
+    return box.d;
+  }catch(e){return null;}
+}
+async function dropReceipt(itemId){
+  const k=receiptKey(itemId);delete imgMem[k];await idbDel(k);
+  const u=receiptUrl(itemId);
+  if(u){try{await fetch(u,{method:"DELETE"});}catch(e){}}
+}
+function toJpeg(canvas,q){return canvas.toDataURL("image/jpeg",q);}
+
+/* ---------------- receipt scanning ----------------
+   Runs entirely on the phone (Tesseract WASM). The photo is never uploaded
+   anywhere and is discarded once the numbers are pulled out. */
+let tessReady=null;
+function loadTesseract(){
+  if(tessReady)return tessReady;
+  tessReady=new Promise((res,rej)=>{
+    if(window.Tesseract)return res(window.Tesseract);
+    const sc=document.createElement("script");
+    sc.src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
+    sc.onload=()=>res(window.Tesseract);
+    sc.onerror=()=>{tessReady=null;rej(new Error("no network"));};
+    document.head.appendChild(sc);
+  });
+  return tessReady;
+}
+function shrinkPlain(file,maxPx,q){
+  return new Promise((res,rej)=>{
+    const img=new Image(),url=URL.createObjectURL(file);
+    img.onload=()=>{
+      const sc=Math.min(1,maxPx/Math.max(img.width,img.height));
+      const c=document.createElement("canvas");
+      c.width=Math.round(img.width*sc);c.height=Math.round(img.height*sc);
+      c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+      URL.revokeObjectURL(url);res(toJpeg(c,q));
+    };
+    img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error("bad image"));};
+    img.src=url;
+  });
+}
+function shrink(file,maxPx){
+  return new Promise((res,rej)=>{
+    const img=new Image(), url=URL.createObjectURL(file);
+    img.onload=()=>{
+      const sc=Math.min(1,maxPx/Math.max(img.width,img.height));
+      const c=document.createElement("canvas");
+      c.width=Math.round(img.width*sc);c.height=Math.round(img.height*sc);
+      const x=c.getContext("2d");
+      x.drawImage(img,0,0,c.width,c.height);
+      // light contrast boost — thermal receipts scan badly flat
+      const d=x.getImageData(0,0,c.width,c.height),a=d.data;
+      for(let i=0;i<a.length;i+=4){
+        const g=(a[i]*.299+a[i+1]*.587+a[i+2]*.114);
+        const v=g<110?0:g>175?255:Math.round((g-110)*255/65);
+        a[i]=a[i+1]=a[i+2]=v;
+      }
+      x.putImageData(d,0,0);
+      URL.revokeObjectURL(url);res(c);
+    };
+    img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error("bad image"));};
+    img.src=url;
+  });
+}
+function parseReceipt(text){
+  const lines=text.split(/\n/).map(l=>l.trim()).filter(Boolean);
+  const num=l=>{
+    const m=[...l.matchAll(/(\d{1,3}(?:[.,]\d{3})*|\d+)[.,](\d{2})\b/g)];
+    if(!m.length)return null;
+    const last=m[m.length-1];
+    return parseFloat((last[1].replace(/[.,]/g,""))+"."+last[2]);
+  };
+  let total=null,how=null;
+  // strongest signal: a line naming the total, ignoring subtotals
+  for(const l of lines){
+    if(/sub ?total|subtotal/i.test(l))continue;
+    if(/\b(total|amount due|balance due|grand total|to pay)\b/i.test(l)){
+      const v=num(l);
+      if(v!=null&&(total==null||v>=total)){total=v;how="total line";}
+    }
+  }
+  if(total==null){
+    const all=lines.map(num).filter(v=>v!=null);
+    if(all.length){total=Math.max(...all);how="largest amount";}
+  }
+  let date=null;
+  const dm=text.match(/\b(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})\b/);
+  if(dm){
+    let[,a,b,y]=dm;y=+y<100?2000+ +y:+y;
+    let mo=+a,dd=+b;
+    if(mo>12&&dd<=12){const t=mo;mo=dd;dd=t;}
+    if(mo>=1&&mo<=12&&dd>=1&&dd<=31&&y>=2020&&y<=2099)
+      date=`${y}-${String(mo).padStart(2,"0")}-${String(dd).padStart(2,"0")}`;
+  }
+  const merchant=(lines.find(l=>/^[A-Za-z][A-Za-z'&.\- ]{3,30}$/.test(l))||"").replace(/\s+/g," ").trim();
+  return {total,how,date,merchant};
+}
+async function scanReceipt(file,ocr){
+  const out=$("#scanOut");
+  try{
+    draft.pendingImg=await shrinkPlain(file,1400,.62);
+    draft.receipt=true;
+    paintReceipt();
+  }catch(e){}
+  if(!ocr){out.innerHTML=`<div class="warn" style="margin-bottom:14px">Receipt attached. Enter the amount yourself, or tap <b>Scan a receipt</b> to try reading it.</div>`;return;}
+  out.innerHTML=`<div class="warn" style="margin-bottom:14px">Reading the receipt\u2026 first scan downloads the reader, so give it a moment.</div>`;
+  try{
+    const T=await loadTesseract();
+    const canvas=await shrink(file,1600);
+    const w=await T.createWorker("eng");
+    const {data:{text}}=await w.recognize(canvas);
+    await w.terminate();
+    const r=parseReceipt(text);
+    if(r.total==null){
+      out.innerHTML=`<div class="warn" style="margin-bottom:14px"><b>Couldn't read an amount.</b> Type it in \u2014 receipts print badly and this misses often.</div>`;
+      return;
+    }
+    $("#fAmt").value=r.total.toFixed(2);
+    if(r.date)$("#fDate").value=r.date;
+    if(r.merchant&&!$("#fDesc").value)$("#fDesc").value=r.merchant;
+    if(!draft.paidTouched)evenPay();
+    paintConv();sumNote();paintPaid();
+    out.innerHTML=`<div class="warn" style="margin-bottom:14px">
+      <b>Check this before saving.</b> Read ${sym(draft.cur)}${r.total.toFixed(2)} from the ${r.how}${r.date?`, dated ${r.date}`:""}. OCR on receipts is unreliable.</div>`;
+  }catch(e){
+    out.innerHTML=`<div class="warn" style="margin-bottom:14px">Couldn't load the reader \u2014 it needs a connection the first time. Type the amount in instead.</div>`;
+  }
+}
+
 /* ---------------- live exchange rates (ECB via Frankfurter, no key) ----------------
    A rate is looked up once per currency pair per date, then frozen onto the
    expense. Re-opening an old expense never silently re-prices it. */
@@ -1408,10 +1622,18 @@ function openDetail(id){
         <div class="note" style="margin:0">paid ${fmtD(r.paid)} · owed ${fmtD(r.share)}</div>
       </span></div>`).join("")}</div>
 
+    ${it.receipt?`<div class="eyebrow">Receipt</div><div id="rcpt" class="card pad"><div class="note" style="margin:0">Loading\u2026</div></div>`:""}
     <div class="btnrow" style="margin-top:16px">
       <button class="btn ghost" data-detail-share="${it.id}">Share this</button>
       <button class="btn teal" data-detail-edit="${it.id}">Edit</button>
     </div>`);
+  if(it.receipt)getReceipt(it.id).then(d=>{
+    const box=$("#rcpt");if(!box)return;
+    box.innerHTML=d
+      ?`<a href="${d}" download="receipt-${it.id}.jpg"><img src="${d}" style="width:100%;border-radius:10px;display:block"></a>
+        <div class="note" style="margin:8px 0 0">Tap to save a copy.</div>`
+      :`<div class="note" style="margin:0">Not on this phone yet \u2014 it'll appear once sync pulls it down.</div>`;
+  });
   $("#sheet2Body").onclick=e=>{
     const ed=e.target.closest("[data-detail-edit]"),sh=e.target.closest("[data-detail-share]");
     if(ed){$("#sheet2").classList.remove("on");setTimeout(()=>openSheet(ed.dataset.detailEdit),160);}
