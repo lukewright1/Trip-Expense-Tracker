@@ -15,7 +15,7 @@
 <meta name="description" content="Split trip expenses across a group. Works offline on iPhone and Android.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=Inter+Tight:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
   --ink:#0B2027;
@@ -30,19 +30,22 @@
   --muted:#5C7075;
   --radius:14px;
   --tab-h:60px;
+  --font:"Century Gothic","Avenir Next","Avenir","Poppins","Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0}
 body{
   background:var(--paper);
   color:var(--ink);
-  font-family:"Inter Tight",system-ui,-apple-system,sans-serif;
-  font-size:16px;line-height:1.4;
+  font-family:var(--font);
+  font-size:16px;line-height:1.45;
+  letter-spacing:-.005em;
   overscroll-behavior-y:none;
   padding-bottom:calc(var(--tab-h) + env(safe-area-inset-bottom));
 }
-h1,h2,h3{font-family:"Bricolage Grotesque","Inter Tight",sans-serif;font-weight:800;letter-spacing:-.02em;margin:0}
-.money{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums;letter-spacing:-.03em}
+h1,h2,h3{font-family:var(--font);font-weight:700;letter-spacing:-.015em;margin:0}
+.money{font-family:var(--font);font-weight:700;font-variant-numeric:tabular-nums;
+  font-feature-settings:"tnum" 1;letter-spacing:-.01em}
 button,input,select,textarea{font:inherit;color:inherit}
 button{border:0;background:none;cursor:pointer}
 input,select{
@@ -51,7 +54,7 @@ input,select{
 }
 input:focus,select:focus,button:focus-visible{outline:2.5px solid var(--amber);outline-offset:1px}
 label.f{display:block;margin-bottom:14px}
-label.f > span{display:block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin-bottom:6px}
+label.f > span{display:block;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:6px}
 
 /* ---------- header ---------- */
 header{
@@ -68,7 +71,7 @@ header::after{
 #tripName{font-size:23px;line-height:1.1}
 .hsub{font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:#8FB3B8;margin-top:4px}
 .htot{text-align:right;flex:none}
-.htot .n{font-size:21px;font-weight:600;color:var(--amber)}
+.htot .n{font-size:22px;font-weight:700;color:var(--amber)}
 .htot .l{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#8FB3B8}
 
 /* ---------- layout ---------- */
@@ -76,7 +79,7 @@ main{padding:16px 14px 24px;max-width:640px;margin:0 auto}
 .screen{display:none}.screen.on{display:block}
 .card{background:var(--card);border:1.5px solid var(--line);border-radius:var(--radius);margin-bottom:12px}
 .pad{padding:16px}
-.eyebrow{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin:22px 0 9px}
+.eyebrow{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin:22px 0 9px}
 .eyebrow:first-child{margin-top:2px}
 .empty{text-align:center;padding:44px 22px;color:var(--muted)}
 .empty h3{font-size:18px;margin-bottom:6px;color:var(--ink)}
@@ -197,7 +200,8 @@ nav button.on .ic{filter:drop-shadow(0 0 8px rgba(242,168,29,.8))}
 .x{width:40px;height:40px;border-radius:50%;background:var(--card);border:1.5px solid var(--line);font-size:17px;line-height:1;display:grid;place-items:center;flex:none}
 .pbody{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 16px calc(20px + env(safe-area-inset-bottom))}
 .pfoot{flex:none;padding:12px 16px calc(12px + env(safe-area-inset-bottom));border-top:1.5px solid var(--line);background:var(--card)}
-.big{font-size:34px !important;font-weight:600;font-family:"IBM Plex Mono",monospace;text-align:center;padding:16px 12px !important;letter-spacing:-.02em}
+.big{font-size:36px !important;font-weight:700;font-family:var(--font);text-align:center;
+  padding:16px 12px !important;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
 .split2{display:flex;gap:9px}.split2>*{flex:1}
 .row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid var(--line)}
 .row:last-child{border-bottom:0}
@@ -225,7 +229,7 @@ nav button.on .ic{filter:drop-shadow(0 0 8px rgba(242,168,29,.8))}
 <header>
   <div class="hrow">
     <div>
-      <button id="tripName" style="color:#fff;font-family:'Bricolage Grotesque',sans-serif;font-weight:800;letter-spacing:-.02em;font-size:23px;line-height:1.1;text-align:left;padding:0">Trip</button>
+      <button id="tripName" style="color:#fff;font-weight:700;letter-spacing:-.015em;font-size:23px;line-height:1.1;text-align:left;padding:0">Trip</button>
       <div class="hsub" id="tripSub">no expenses yet</div>
     </div>
     <div class="htot">
@@ -1235,7 +1239,7 @@ $("#openFb").onclick=()=>{
       <li>Build → Realtime Database → Create Database → <b>Start in locked mode</b>.</li>
       <li>Open the <b>Rules</b> tab, paste exactly this, and Publish:</li>
     </ol>
-    <textarea readonly id="ruleBox" style="width:100%;height:120px;font-family:'IBM Plex Mono',monospace;font-size:12px;padding:10px;border:1.5px solid var(--line);border-radius:11px;background:var(--card)">{ "rules": { "trips": { "$id": { ".read": true, ".write": true } } } }</textarea>
+    <textarea readonly id="ruleBox" style="width:100%;height:120px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;padding:10px;border:1.5px solid var(--line);border-radius:11px;background:var(--card)">{ "rules": { "trips": { "$id": { ".read": true, ".write": true } } } }</textarea>
     <p class="note" style="margin:8px 0 16px">Those rules look open, but each trip lives at a random 32-character address nobody can guess or list — and the contents are encrypted on your phone before they're sent. Firebase stores scrambled text.</p>
     <label class="f"><span>Database URL</span><input id="fbDb" placeholder="https://yourproject-default-rtdb.firebaseio.com" autocomplete="off"></label>
     <label class="f"><span>Trip passphrase</span><input id="fbPass" placeholder="something you'll text the group" autocomplete="off"></label>
