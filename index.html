@@ -95,7 +95,25 @@ main{padding:16px 14px 24px;max-width:640px;margin:0 auto}
 .item .amt{flex:none;text-align:right}
 .item .amt .a{font-weight:600}
 .item .amt .b{font-size:12px;color:var(--muted)}
+.av{width:38px;height:38px;border-radius:50%;flex:none;display:grid;place-items:center;
+  overflow:hidden;color:#fff;font-weight:700;font-size:13px;background:var(--hull);user-select:none}
+.av img{width:100%;height:100%;object-fit:cover;display:block}
+.av.sm{width:30px;height:30px;font-size:11px}
+.av.lg{width:52px;height:52px;font-size:17px}
+.av.ring{box-shadow:0 0 0 2px var(--card),0 0 0 3.5px var(--adriatic)}
+.avstack{display:flex;align-items:center}
+.avstack .av:not(:first-child){margin-left:-11px;box-shadow:0 0 0 2px var(--card)}
 .pos{color:var(--adriatic-dk)}.neg{color:var(--coral)}
+.swipe{position:relative;overflow:hidden;border-bottom:1px solid var(--line)}
+.swipe:last-child{border-bottom:0}
+.swipe .acts{position:absolute;inset:0 0 0 auto;display:flex;align-items:stretch}
+.swipe .acts button{width:78px;color:#fff;font-weight:700;font-size:14px}
+.swipe .acts .ed{background:var(--hull)}
+.swipe .acts .dl{background:var(--coral)}
+.swipe .item{position:relative;background:var(--card);border-bottom:0;
+  transition:transform .22s cubic-bezier(.2,.8,.3,1);will-change:transform;touch-action:pan-y}
+.swipe.open .item{transform:translateX(-156px)}
+.swipe.dragging .item{transition:none}
 
 /* ---------- waterline balance bars ---------- */
 .bal{padding:14px 14px 10px;border-bottom:1px solid var(--line)}
@@ -140,6 +158,7 @@ main{padding:16px 14px 24px;max-width:640px;margin:0 auto}
   display:inline-flex;align-items:center;gap:6px;line-height:1;
 }
 .chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.chip .av{margin-left:-6px}
 .chip.cat{padding:9px 12px}
 .chip.cat.on{background:var(--adriatic);border-color:var(--adriatic)}
 .catgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
@@ -297,6 +316,12 @@ nav button.on .ic{filter:drop-shadow(0 0 8px rgba(242,168,29,.8))}
       <label style="display:flex;align-items:center;gap:9px;margin-top:12px;font-size:14px">
         <input type="checkbox" id="carryPeople" checked style="width:20px;height:20px;flex:none">
         <span>Copy the people and currency from this trip</span></label>
+    </div>
+
+    <div class="eyebrow">Which one are you?</div>
+    <div class="card pad">
+      <select id="mePick"></select>
+      <p class="note" style="margin:8px 0 0">Just for this phone \u2014 it sets the default payer on new expenses and marks your own line in the lists. Not shared with anyone.</p>
     </div>
 
     <div class="eyebrow">People</div>
@@ -473,6 +498,10 @@ let store=loadStore();
 let S=store.trips[store.active];
 let sync=(JSON.parse(localStorage.getItem(LSYNC)||"{}")||{})[store.active]||null;
 let draft=null, tab="log", pushTimer=null, filter="all";
+const LME="tripsplit.me.v1";
+function meMap(){try{return JSON.parse(localStorage.getItem(LME))||{};}catch(e){return {};}}
+function meId(){const id=meMap()[S.tripId];return (id&&S.people[id]&&!S.people[id].del)?id:null;}
+function setMe(id){const m=meMap();if(id)m[S.tripId]=id;else delete m[S.tripId];localStorage.setItem(LME,JSON.stringify(m));render();}
 
 function blank(){
   return {tripId:uid(),name:"Trip",cur:"USD",alt:"",rate:1,archived:false,metaUpd:now(),people:{},items:{}};
@@ -612,6 +641,8 @@ function render(){
   $("#setAlt").innerHTML=curOpts(S.alt,"None \u2014 single currency");
   curHint();
   $("#setRate").value=S.rate;$("#curA").textContent=S.cur;$("#curB").textContent=S.alt||"—";
+  $("#mePick").innerHTML=`<option value="">Not set</option>`+
+    people().map(p=>`<option value="${p.id}"${meId()===p.id?" selected":""}>${esc(p.name)}</option>`).join("");
   $("#dispCurSeg").innerHTML=curSeg();$("#bookCur").textContent=S.cur;
   showIf("#dispCurSeg",twoCur());
   const de=$("#dispCurSeg").previousElementSibling;
@@ -655,15 +686,20 @@ function renderLog(all){
   list.forEach(it=>{
     if(it.date!==day){day=it.date;h+=`<div class="day">${dayLabel(day)}</div><div class="card">`;}
     const m=shareMap(it),who=Object.keys(m).length;
-    const pn=Object.keys(paidMap(it));
+    const pn=Object.keys(paidMap(it));if(!pn.length)pn.push(it.payer);
     const payTxt=pn.length>1?`${pn.length} people paid`:`${nameOf(pn[0])} paid`;
     const sub=it.kind==="pay"?`${nameOf(it.payer)} → ${nameOf(it.with[0])}`
       :`${payTxt} · split ${who===people().length?"evenly":`${who} way${who===1?"":"s"}`}`;
     const alt=otherCur()&&S.rate?`<div class="b money">${fmt(toOther(it.cents),otherCur())}</div>`:"";
-    h+=`<button class="item" data-edit="${it.id}">
-      <div class="cat">${it.kind==="pay"?"🤝":it.cat||"💶"}</div>
+    h+=`<div class="swipe" data-row="${it.id}">
+      <div class="acts"><button class="ed" data-sw-edit="${it.id}">Edit</button><button class="dl" data-sw-del="${it.id}">Delete</button></div>
+      <button class="item" data-edit="${it.id}">
+      <div style="display:flex;align-items:center;flex:none">
+        <div class="cat" style="margin-right:-9px;z-index:1;box-shadow:0 0 0 2px var(--card)">${it.kind==="pay"?"\u{1F91D}":it.cat||"\u{1F4B6}"}</div>
+        ${pn.length>1?`<span class="avstack">${pn.slice(0,2).map(x=>avatar(x,"sm")).join("")}</span>`:avatar(pn[0],"sm")}
+      </div>
       <div class="mid"><div class="t">${it.receipt?"\ud83e\uddfe ":""}${esc(it.desc||"Expense")}</div><div class="s">${esc(sub)}</div></div>
-      <div class="amt"><div class="a money">${fmtD(it.cents)}</div>${alt}</div></button>`;
+      <div class="amt"><div class="a money">${fmtD(it.cents)}</div>${alt}</div></button></div>`;
     const nx=list[list.indexOf(it)+1];
     if(!nx||nx.date!==day)h+=`</div>`;
   });
@@ -679,15 +715,17 @@ function renderBal(){
   $("#balBody").innerHTML=ps.map(p=>{
     const v=b[p.id]||0,w=Math.abs(v)/max*50;
     const txt=Math.abs(v)<1?"settled up":(v>0?`is owed ${fmtD(v)}`:`owes ${fmtD(-v)}`);
-    return `<div class="bal"><div class="top"><span class="nm">${esc(p.name)}</span>
+    return `<div class="bal"><div class="top" style="align-items:center">
+      <span style="display:flex;align-items:center;gap:10px;min-width:0">${avatar(p.id)}
+      <span class="nm" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.name)}${meId()===p.id?`<span style="font-size:11px;color:var(--muted);font-weight:600"> &middot; you</span>`:""}</span></span>
       <span class="v money ${v>0?"pos":v<0?"neg":""}">${Math.abs(v)<1?"—":fmtD(v)}</span></div>
-      <div class="track"><div class="fill ${v>=0?"p":"n"}" style="width:${w}%"></div></div>
-      <div style="font-size:12px;color:var(--muted);margin-top:6px">${txt}</div></div>`;
+      <div class="track" style="margin-left:48px"><div class="fill ${v>=0?"p":"n"}" style="width:${w}%"></div></div>
+      <div style="font-size:12px;color:var(--muted);margin-top:6px;padding-left:48px">${txt}</div></div>`;
   }).join("");
   $("#detailBody").innerHTML=ps.map(p=>{
     let paid=0,owed=0;
     items().forEach(it=>{paid+=paidMap(it)[p.id]||0;owed+=shareMap(it)[p.id]||0;});
-    return `<button class="row" style="padding:13px 14px;width:100%;text-align:left" data-person="${p.id}"><span>${esc(p.name)}</span>
+    return `<button class="row" style="padding:13px 14px;width:100%;text-align:left" data-person="${p.id}"><span style="display:flex;align-items:center;gap:10px;min-width:0">${avatar(p.id,"sm")}<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.name)}</span></span>
       <span style="text-align:right;font-size:13px;color:var(--muted)">
       paid <b class="money" style="color:var(--ink)">${fmtD(paid)}</b> · share <b class="money" style="color:var(--ink)">${fmtD(owed)}</b></span></button>`;
   }).join("");
@@ -702,6 +740,7 @@ function curSeg(){return [S.cur,S.alt].filter(Boolean).map(c=>
   `<button data-scur="${c}" class="${dispCur()===c?"on":""}">${esc(c)}</button>`).join("");}
 function showIf(sel,on){const e=$(sel);if(e)e.style.display=on?"":"none";}
 function renderSettle(){
+  const me=meId();
   const sc=dispCur();
   $("#settleCurSeg").innerHTML=curSeg();
   showIf("#settleCurSeg",twoCur());
@@ -712,12 +751,16 @@ function renderSettle(){
     :`Converted from ${esc(S.cur)} at ${S.rate}. Change the rate under <b>Trip</b>. Payments are still recorded in ${esc(S.cur)}, so the books stay exact.`;
   const s=settlements(),el=$("#settleBody");
   if(!s.length){el.innerHTML=`<div class="empty"><h3>All square</h3><p>Nobody owes anybody. Enjoy the rest of it.</p></div>`;return;}
-  el.innerHTML=s.map(p=>{
+  const ordered=me?[...s].sort((a,b)=>((b.from===me||b.to===me)?1:0)-((a.from===me||a.to===me)?1:0)):s;
+  el.innerHTML=ordered.map(p=>{
     const main=fmt(toDisp(p.v),sc);
     const sub=sc===S.cur?"":`<div style="font-size:12px;color:var(--muted)" class="money">${fmt(p.v)}</div>`;
     const vh=S.people[p.to]?.venmo;
-    return `<div class="pay">
-    <div class="cat">→</div>
+    const mine=me&&(p.from===me||p.to===me);
+    return `<div class="pay"${mine?' style="background:#F6FAFA"':""}>
+    <div style="display:flex;align-items:center;gap:3px;flex:none">
+      ${avatar(p.from,"sm")}<span style="color:var(--muted);font-size:12px">→</span>${avatar(p.to,"sm")}
+    </div>
     <div class="flow"><div class="who">${esc(nameOf(p.from))} <span class="arrow">pays</span> ${esc(nameOf(p.to))}</div>
     <div class="amt money">${main}</div>${sub}</div>
     <div style="display:flex;flex-direction:column;gap:6px;flex:none">
@@ -744,6 +787,8 @@ function renderPeople(){
   const ps=people();
   $("#peopleBody").innerHTML=ps.length?ps.map(p=>`<div style="padding:13px 14px;border-bottom:1px solid var(--line)">
     <div style="display:flex;align-items:center;gap:10px">
+      <button data-pic="${p.id}" style="flex:none;position:relative">${avatar(p.id,"lg")}
+        <span style="position:absolute;right:-2px;bottom:-2px;width:19px;height:19px;border-radius:50%;background:var(--ink);color:#fff;font-size:11px;line-height:1;display:grid;place-items:center;border:2px solid var(--card)">+</span></button>
       <input data-name="${p.id}" value="${esc(p.name)}" autocomplete="off"
         style="flex:1;font-weight:600;padding:8px 10px;min-width:0">
       <span style="display:flex;align-items:center;gap:6px">
@@ -754,9 +799,25 @@ function renderPeople(){
     </div>
     <div style="display:flex;align-items:center;gap:6px;margin-top:9px">
       <span style="font-size:12px;color:var(--muted);width:58px;flex:none">Venmo</span>
-      <input data-venmo="${p.id}" value="${p.venmo?"@"+esc(p.venmo):""}" placeholder="@handle from their Venmo profile" autocomplete="off" style="padding:8px 10px;font-size:14px">
+      <input data-venmo="${p.id}" value="${p.venmo?(/^https?:/.test(p.venmo)?esc(p.venmo):"@"+esc(p.venmo)):""}" placeholder="@handle, or scan their code" autocomplete="off" style="padding:8px 10px;font-size:14px">
+      <button class="btn ghost sm" data-qr="${p.id}" style="flex:none;padding:8px 11px">Scan</button>
     </div></div>`).join("")
     :`<div class="empty" style="padding:26px">Nobody added yet.</div>`;
+}
+const AVC=["#128C8C","#1E6F8E","#C2772B","#7A5EA6","#2E8B57","#B8475C","#4A6FA5","#8C6A2F"];
+function avColor(id){let h=0;for(const c of String(id))h=(h*31+c.charCodeAt(0))>>>0;return AVC[h%AVC.length];}
+function initials(n){
+  const w=String(n||"?").replace(/&/g," ").trim().split(/\s+/).filter(Boolean);
+  if(!w.length)return "?";
+  if(w.length===1)return w[0].slice(0,2).toUpperCase();
+  return (w[0][0]+w[w.length-1][0]).toUpperCase();
+}
+function avatar(id,cls){
+  const p=S.people[id];
+  const cl=`av ${cls||""}${meId()===id?" ring":""}`;
+  return p&&p.pic
+    ? `<span class="${cl}"><img src="${p.pic}" alt=""></span>`
+    : `<span class="${cl}" style="background:${avColor(id)}">${esc(initials(p?p.name:"?"))}</span>`;
 }
 function esc(s){return String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
 /* native confirm() is blocked inside sandboxed webviews — use our own */
@@ -788,7 +849,7 @@ function openSheet(id){
   const ex=id?S.items[id]:null;
   draft=ex?JSON.parse(JSON.stringify(ex)):{
     id:uid(),kind:"exp",desc:"",cents:0,cur:S.cur,cat:"🍽️",
-    payers:[people()[0].id],paid:{},
+    payers:[meId()||people()[0].id],paid:{},
     with:people().map(p=>p.id),
     mode:people().some(p=>(p.size||1)>1)?"shares":"equal",
     parts:Object.fromEntries(people().map(p=>[p.id,p.size||1])),
@@ -821,10 +882,10 @@ function paintSheet(){
   $("#fCats").innerHTML=CATS.map(([e,n])=>
     `<button class="tile ${draft.cat===e?"on":""}" data-cat="${e}"><span class="e">${e}</span><span class="l">${esc(n)}</span></button>`).join("");
   $("#fPayer").innerHTML=ps.map(p=>
-    `<button class="chip ${draft.payers.includes(p.id)?"on":""}" data-payer="${p.id}">${esc(p.name)}</button>`).join("");
+    `<button class="chip ${draft.payers.includes(p.id)?"on":""}" data-payer="${p.id}">${avatar(p.id,"sm")}${esc(p.name)}</button>`).join("");
   paintPaid();
   $("#fSplit").innerHTML=ps.map(p=>
-    `<button class="chip ${draft.with.includes(p.id)?"on":""}" data-split="${p.id}">${esc(p.name)}</button>`).join("");
+    `<button class="chip ${draft.with.includes(p.id)?"on":""}" data-split="${p.id}">${avatar(p.id,"sm")}${esc(p.name)}</button>`).join("");
   document.querySelectorAll("#fMode button").forEach(b=>b.classList.toggle("on",b.dataset.m===draft.mode));
   paintCustom();paintConv();
 }
@@ -989,6 +1050,41 @@ $("#delItem").onclick=async()=>{
   S.items[d.id]={...d,del:true,upd:now()};closeSheet();save();toast("Deleted");
   dropReceipt(d.id);
 };
+/* swipe-to-reveal on log rows */
+(function(){
+  let row=null,x0=0,y0=0,dx=0,locked=null;
+  const body=$("#logBody");
+  const closeAll=ex=>document.querySelectorAll(".swipe.open").forEach(r=>{if(r!==ex)r.classList.remove("open");});
+  body.addEventListener("touchstart",e=>{
+    const r=e.target.closest(".swipe");
+    if(!r){closeAll();return;}
+    if(e.target.closest(".acts"))return;
+    row=r;x0=e.touches[0].clientX;y0=e.touches[0].clientY;dx=0;locked=null;
+    closeAll(r);
+  },{passive:true});
+  body.addEventListener("touchmove",e=>{
+    if(!row)return;
+    const t=e.touches[0];
+    const mx=t.clientX-x0, my=t.clientY-y0;
+    if(locked===null){
+      if(Math.abs(mx)<6&&Math.abs(my)<6)return;
+      locked=Math.abs(mx)>Math.abs(my)?"x":"y";
+      if(locked==="x")row.classList.add("dragging");
+    }
+    if(locked!=="x")return;
+    const open=row.classList.contains("open");
+    dx=Math.max(-156,Math.min(0,(open?-156:0)+mx));
+    row.querySelector(".item").style.transform=`translateX(${dx}px)`;
+  },{passive:true});
+  body.addEventListener("touchend",()=>{
+    if(!row)return;
+    const it=row.querySelector(".item");
+    row.classList.remove("dragging");
+    it.style.transform="";
+    if(locked==="x")row.classList.toggle("open",dx<-52);
+    row=null;locked=null;
+  },{passive:true});
+})();
 $("#filterBar").onclick=e=>{
   const b=e.target.closest("[data-f]");if(!b)return;
   filter=b.dataset.f;render();window.scrollTo(0,0);
@@ -1001,7 +1097,31 @@ $("#catBody").onclick=e=>{
   render();
 };
 $("#fab").onclick=()=>openSheet(null);
-$("#logBody").onclick=e=>{const b=e.target.closest("[data-edit]");if(b)openDetail(b.dataset.edit);};
+$("#logBody").onclick=async e=>{
+  const ed=e.target.closest("[data-sw-edit]"),dl=e.target.closest("[data-sw-del]");
+  if(ed){document.querySelectorAll(".swipe.open").forEach(r=>r.classList.remove("open"));return openSheet(ed.dataset.swEdit);}
+  if(dl){
+    const it=S.items[dl.dataset.swDel];if(!it)return;
+    document.querySelectorAll(".swipe.open").forEach(r=>r.classList.remove("open"));
+    if(!await ask("Delete this expense?",`${it.desc||"Expense"} \u2014 ${fmtD(it.cents)}. Everyone on the trip loses it.`,"Delete"))return;
+    S.items[it.id]={...it,del:true,upd:now()};save();
+    undoToast(it);
+    return;
+  }
+  const open=e.target.closest(".swipe.open");
+  if(open){open.classList.remove("open");return;}
+  const b=e.target.closest("[data-edit]");if(b)openDetail(b.dataset.edit);
+};
+function undoToast(it){
+  const t=$("#toast");
+  t.innerHTML=`Deleted \u00b7 <button id="undoBtn" style="color:var(--amber);font-weight:700;text-decoration:underline">Undo</button>`;
+  t.classList.add("on");clearTimeout(t._t);
+  t._t=setTimeout(()=>t.classList.remove("on"),7000);
+  $("#undoBtn").onclick=()=>{
+    S.items[it.id]={...it,del:false,upd:now()};save();
+    t.classList.remove("on");toast("Restored");
+  };
+}
 
 /* record a settlement payment */
 function pickDisp(e){
@@ -1015,7 +1135,13 @@ $("#settleBody").onclick=async e=>{
   if(vp){
     const [from,to,v]=vp.dataset.venmopay.split("|");
     const usd=S.cur==="USD"?+v:(S.alt==="USD"?Math.round(+v*(S.rate||1)):+v);
-    const h=(S.people[to].venmo||"").trim().replace(/^@+/,"").replace(/^.*venmo\.com\/(u\/)?/,"").split(/[/?#\s]/)[0];
+    const rawV=(S.people[to].venmo||"").trim();
+    if(!rawV)return toast(`Add ${nameOf(to)}'s Venmo handle under Trip first`);
+    if(/^https?:\/\/.*venmo\.com\/code\?/i.test(rawV)){
+      window.open(rawV,"_blank");
+      toast(`Owe ${fmt(usd,"USD")} \u2014 tap Settle once it goes through`);return;
+    }
+    const h=rawV.replace(/^@+/,"").replace(/^.*venmo\.com\/(u\/)?/,"").split(/[/?#\s]/)[0];
     if(!h)return toast(`Add ${nameOf(to)}'s Venmo handle under Trip first`);
     const note=encodeURIComponent(`${S.name} - settling up`);
     const amt=(usd/100).toFixed(2);
@@ -1062,6 +1188,7 @@ async function fetchLiveRate(){
   if(v){$("#setRate").value=v.toFixed(4);toast(`1 ${a} = ${v.toFixed(4)} ${b}`);}
   else toast("Couldn't reach the rate service \u2014 enter it manually");
 }
+$("#mePick").onchange=()=>setMe($("#mePick").value||null);
 $("#liveRate").onclick=fetchLiveRate;
 $("#setAlt").onchange=()=>{curHint();const a=$("#setCur").value,b=$("#setAlt").value;if(b&&b!==a)fetchLiveRate();};
 $("#setCur").onchange=()=>{curHint();const a=$("#setCur").value,b=$("#setAlt").value;if(b&&b!==a)fetchLiveRate();};
@@ -1130,7 +1257,9 @@ $("#peopleBody").oninput=e=>{
   const v=e.target.closest("[data-venmo]");
   if(v){
     const p=S.people[v.dataset.venmo];
-    const clean=v.value.trim().replace(/^@+/,"").replace(/^.*venmo\.com\/(u\/)?/,"").split(/[/?#\s]/)[0];
+    const rv=v.value.trim();
+    const clean=/venmo\.com\/code\?/i.test(rv)?rv
+      :rv.replace(/^@+/,"").replace(/^.*venmo\.com\/(u\/)?/,"").split(/[/?#\s]/)[0];
     S.people[p.id]={...p,venmo:clean,upd:now()};
     persist();queuePush();return;
   }
@@ -1144,6 +1273,35 @@ $("#peopleBody").onchange=e=>{
   if(e.target.closest("[data-name]"))render();
 };
 $("#peopleBody").onclick=async e=>{
+  const pic=e.target.closest("[data-pic]");
+  if(pic){
+    let inp=$("#picIn");
+    if(!inp){
+      inp=document.createElement("input");
+      inp.type="file";inp.accept="image/*";inp.id="picIn";inp.style.display="none";
+      document.body.appendChild(inp);
+    }
+    inp.onchange=async ev=>{
+      const f=ev.target.files[0];ev.target.value="";if(!f)return;
+      try{
+        const d=await squareCrop(f,160,.6);
+        const pp=S.people[pic.dataset.pic];
+        S.people[pp.id]={...pp,pic:d,upd:now()};save();
+      }catch(x){toast("Couldn't read that image");}
+    };
+    inp.click();return;
+  }
+  const qr=e.target.closest("[data-qr]");
+  if(qr){
+    let inp=$("#qrIn");
+    if(!inp){
+      inp=document.createElement("input");
+      inp.type="file";inp.accept="image/*";inp.id="qrIn";inp.style.display="none";
+      document.body.appendChild(inp);
+    }
+    inp.onchange=ev=>{const f=ev.target.files[0];ev.target.value="";if(f)scanVenmoQR(f,qr.dataset.qr);};
+    inp.click();return;
+  }
   const b=e.target.closest("[data-rm]");if(!b)return;
   const id=b.dataset.rm;
   const used=items().some(i=>i.payer===id||i.with.includes(id));
@@ -1376,6 +1534,52 @@ $("#stopSync").onclick=async()=>{
   sync=null;saveSync();render();
 };
 
+/* ---------------- Venmo QR codes ---------------- */
+let jsqr=null;
+function loadJsQR(){
+  if(jsqr)return jsqr;
+  jsqr=new Promise((res,rej)=>{
+    if(window.jsQR)return res(window.jsQR);
+    const sc=document.createElement("script");
+    sc.src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js";
+    sc.onload=()=>res(window.jsQR);
+    sc.onerror=()=>{jsqr=null;rej(new Error("no network"));};
+    document.head.appendChild(sc);
+  });
+  return jsqr;
+}
+function venmoFromQR(txt){
+  if(!txt)return null;
+  const t=txt.trim();
+  if(!/venmo\.com/i.test(t))return null;
+  // a username code gives us the handle; a user_id code only works as a whole URL
+  const u=t.match(/venmo\.com\/(?:u\/)?([A-Za-z0-9_.\-]{3,40})(?:[/?#]|$)/i);
+  if(u&&!/^code$/i.test(u[1]))return u[1];
+  if(/venmo\.com\/code\?/i.test(t))return t;
+  return null;
+}
+async function scanVenmoQR(file,personId){
+  try{
+    const q=await loadJsQR();
+    const img=await new Promise((res,rej)=>{
+      const i=new Image(),u=URL.createObjectURL(file);
+      i.onload=()=>{URL.revokeObjectURL(u);res(i);};i.onerror=()=>{URL.revokeObjectURL(u);rej();};i.src=u;
+    });
+    const sc=Math.min(1,1200/Math.max(img.width,img.height));
+    const c=document.createElement("canvas");
+    c.width=Math.round(img.width*sc);c.height=Math.round(img.height*sc);
+    const x=c.getContext("2d");x.drawImage(img,0,0,c.width,c.height);
+    const d=x.getImageData(0,0,c.width,c.height);
+    const r=q(d.data,c.width,c.height);
+    if(!r)return toast("No code found \u2014 fill the frame with it and try again");
+    const v=venmoFromQR(r.data);
+    if(!v)return toast("That code isn't a Venmo profile");
+    const p=S.people[personId];
+    S.people[p.id]={...p,venmo:v,upd:now()};save();
+    toast(/^https?:/.test(v)?"Venmo profile linked":`Got @${v}`);
+  }catch(e){toast("Couldn't load the code reader \u2014 needs a connection once");}
+}
+
 /* ---------------- receipt images ----------------
    Images live OUTSIDE the trip record on purpose. The record syncs constantly;
    photos would make every sync drag the whole album down with it. Each receipt
@@ -1446,6 +1650,19 @@ function loadTesseract(){
     document.head.appendChild(sc);
   });
   return tessReady;
+}
+function squareCrop(file,px,q){
+  return new Promise((res,rej)=>{
+    const img=new Image(),u=URL.createObjectURL(file);
+    img.onload=()=>{
+      const side=Math.min(img.width,img.height);
+      const c=document.createElement("canvas");c.width=c.height=px;
+      c.getContext("2d").drawImage(img,(img.width-side)/2,(img.height-side)/2,side,side,0,0,px,px);
+      URL.revokeObjectURL(u);res(c.toDataURL("image/jpeg",q));
+    };
+    img.onerror=()=>{URL.revokeObjectURL(u);rej(new Error("bad image"));};
+    img.src=u;
+  });
 }
 function shrinkPlain(file,maxPx,q){
   return new Promise((res,rej)=>{
@@ -1604,7 +1821,8 @@ function openDetail(id){
 
     <div class="eyebrow" style="margin-top:0">Who put the money down</div>
     <div class="card">${Object.keys(pm).map(id=>`<div class="row" style="padding:12px 14px">
-      <span>${esc(nameOf(id))}</span><span class="money" style="font-weight:600">${fmtD(pm[id])}</span></div>`).join("")}</div>
+      <span style="display:flex;align-items:center;gap:10px">${avatar(id,"sm")}${esc(nameOf(id))}</span>
+      <span class="money" style="font-weight:600">${fmtD(pm[id])}</span></div>`).join("")}</div>
 
     <div class="eyebrow">Who it was split between</div>
     <div class="card">${rows.filter(r=>r.share>0).map(r=>`<div class="row" style="padding:12px 14px">
