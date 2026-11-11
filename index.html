@@ -101,6 +101,25 @@ main{padding:16px 14px 24px;max-width:640px;margin:0 auto}
 .av.sm{width:30px;height:30px;font-size:11px}
 .av.lg{width:52px;height:52px;font-size:17px}
 .av.ring{box-shadow:0 0 0 2px var(--card),0 0 0 3.5px var(--adriatic)}
+/* people editor — avatar column, stacked fields, nothing competing for one line */
+.prow{display:flex;gap:12px;padding:14px;border-bottom:1px solid var(--line)}
+.prow:last-child{border-bottom:0}
+.pface{flex:none;position:relative;padding:0;line-height:0}
+.pplus{position:absolute;right:-2px;bottom:-2px;width:20px;height:20px;border-radius:50%;
+  background:var(--ink);color:#fff;font-size:13px;line-height:1;display:grid;place-items:center;
+  border:2px solid var(--card);font-weight:700}
+.pbody2{flex:1;min-width:0}
+.pname{width:100%;font-weight:700;font-size:16px;padding:10px 12px}
+.pmeta{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;align-items:flex-end}
+.pfield{display:block;flex:none}
+.pfield.grow{flex:1 1 140px;min-width:0}
+.pfield > span{display:block;font-size:10px;font-weight:600;text-transform:uppercase;
+  letter-spacing:.08em;color:var(--muted);margin-bottom:4px}
+.pfield input{padding:9px 10px;font-size:15px}
+.pfield:not(.grow) input{width:64px;text-align:center}
+.psm{align-self:flex-end;padding:10px 12px;border:1.5px solid var(--line);border-radius:11px;
+  background:var(--card);font-size:13px;font-weight:600;white-space:nowrap}
+.psm.del{color:var(--coral);border-color:var(--coral)}
 .avstack{display:flex;align-items:center}
 .avstack .av:not(:first-child){margin-left:-11px;box-shadow:0 0 0 2px var(--card)}
 .pos{color:var(--adriatic-dk)}.neg{color:var(--coral)}
@@ -785,25 +804,22 @@ function renderTrips(){
 }
 function renderPeople(){
   const ps=people();
-  $("#peopleBody").innerHTML=ps.length?ps.map(p=>`<div style="padding:13px 14px;border-bottom:1px solid var(--line)">
-    <div style="display:flex;align-items:center;gap:10px">
-      <button data-pic="${p.id}" style="flex:none;position:relative">${avatar(p.id,"lg")}
-        <span style="position:absolute;right:-2px;bottom:-2px;width:19px;height:19px;border-radius:50%;background:var(--ink);color:#fff;font-size:11px;line-height:1;display:grid;place-items:center;border:2px solid var(--card)">+</span></button>
-      <input data-name="${p.id}" value="${esc(p.name)}" autocomplete="off"
-        style="flex:1;font-weight:600;padding:8px 10px;min-width:0">
-      <span style="display:flex;align-items:center;gap:6px">
-        <span style="font-size:12px;color:var(--muted)">people</span>
-        <input data-size="${p.id}" inputmode="numeric" value="${p.size||1}" style="width:52px;text-align:center;padding:8px">
-      </span>
-      <button class="btn danger sm" data-rm="${p.id}">Remove</button>
-    </div>
-    <div style="display:flex;align-items:center;gap:6px;margin-top:9px">
-      <span style="font-size:12px;color:var(--muted);width:58px;flex:none">Venmo</span>
-      <input data-venmo="${p.id}" value="${p.venmo?(/^https?:/.test(p.venmo)?esc(p.venmo):"@"+esc(p.venmo)):""}" placeholder="@handle, or scan their code" autocomplete="off" style="padding:8px 10px;font-size:14px">
-      <button class="btn ghost sm" data-qr="${p.id}" style="flex:none;padding:8px 11px">Scan</button>
+  $("#peopleBody").innerHTML=ps.length?ps.map(p=>`<div class="prow">
+    <button class="pface" data-pic="${p.id}">${avatar(p.id,"lg")}<span class="pplus">+</span></button>
+    <div class="pbody2">
+      <input class="pname" data-name="${p.id}" value="${esc(p.name)}" placeholder="Name" autocomplete="off">
+      <div class="pmeta">
+        <label class="pfield"><span>People</span>
+          <input data-size="${p.id}" inputmode="numeric" value="${p.size||1}"></label>
+        <label class="pfield grow"><span>Venmo</span>
+          <input data-venmo="${p.id}" value="${p.venmo?(/^https?:/.test(p.venmo)?esc(p.venmo):"@"+esc(p.venmo)):""}" placeholder="@handle"></label>
+        <button class="psm" data-qr="${p.id}">Scan</button>
+        <button class="psm del" data-rm="${p.id}">Remove</button>
+      </div>
     </div></div>`).join("")
     :`<div class="empty" style="padding:26px">Nobody added yet.</div>`;
 }
+
 const AVC=["#128C8C","#1E6F8E","#C2772B","#7A5EA6","#2E8B57","#B8475C","#4A6FA5","#8C6A2F"];
 function avColor(id){let h=0;for(const c of String(id))h=(h*31+c.charCodeAt(0))>>>0;return AVC[h%AVC.length];}
 function initials(n){
@@ -970,8 +986,8 @@ function sumNote(){
   }
 }
 function paintReceipt(){
-  const el=$("#shotWrap");if(!el)return;
-  const src=draft.pendingImg;
+  const el=$("#shotWrap");if(!el||!draft)return;
+  const src=draft.pendingImg||draft.previewUrl;
   el.innerHTML=src
     ?`<div style="position:relative;margin-bottom:12px">
         <img src="${src}" style="width:100%;max-height:210px;object-fit:cover;border-radius:12px;border:1.5px solid var(--line)">
@@ -1042,7 +1058,10 @@ $("#saveItem").onclick=()=>{
   delete draft.pendingImg;delete draft.dropReceipt;
   draft.receipt=!!img;
   S.items[id]=draft;closeSheet();save();toast("Saved");
-  if(img)saveReceipt(id,img);else if(drop)dropReceipt(id);
+  if(img)saveReceipt(id,img).then(r=>{
+    if(r===false)toast("Receipt saved on this phone, but not shared \u2014 check sync");
+  });
+  else if(drop)dropReceipt(id);
 };
 $("#delItem").onclick=async()=>{
   const d=draft;
@@ -1606,11 +1625,12 @@ async function saveReceipt(itemId,dataUrl){
   await idbPut(receiptKey(itemId),dataUrl);
   imgMem[receiptKey(itemId)]=dataUrl;
   const u=receiptUrl(itemId);
-  if(!u)return;
+  if(!u)return null;              // no sync on this trip — local only, by design
   try{
     const body=sync.pass?await seal({d:dataUrl},sync.pass,sync.path):{d:dataUrl};
-    await fetch(u,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
-  }catch(e){}
+    const r=await fetch(u,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+    return r.ok?true:false;
+  }catch(e){return false;}
 }
 async function getReceipt(itemId){
   const k=receiptKey(itemId);
@@ -1651,40 +1671,47 @@ function loadTesseract(){
   });
   return tessReady;
 }
-function squareCrop(file,px,q){
+async function decode(file){
+  if(window.createImageBitmap){
+    try{return await createImageBitmap(file);}catch(e){}
+  }
   return new Promise((res,rej)=>{
-    const img=new Image(),u=URL.createObjectURL(file);
-    img.onload=()=>{
-      const side=Math.min(img.width,img.height);
-      const c=document.createElement("canvas");c.width=c.height=px;
-      c.getContext("2d").drawImage(img,(img.width-side)/2,(img.height-side)/2,side,side,0,0,px,px);
-      URL.revokeObjectURL(u);res(c.toDataURL("image/jpeg",q));
-    };
-    img.onerror=()=>{URL.revokeObjectURL(u);rej(new Error("bad image"));};
-    img.src=u;
+    const i=new Image(),u=URL.createObjectURL(file);
+    i.onload=()=>{i._u=u;res(i);};
+    i.onerror=()=>{URL.revokeObjectURL(u);rej(new Error("This image format can't be read here"));};
+    i.src=u;
   });
 }
-function shrinkPlain(file,maxPx,q){
-  return new Promise((res,rej)=>{
-    const img=new Image(),url=URL.createObjectURL(file);
-    img.onload=()=>{
-      const sc=Math.min(1,maxPx/Math.max(img.width,img.height));
-      const c=document.createElement("canvas");
-      c.width=Math.round(img.width*sc);c.height=Math.round(img.height*sc);
-      c.getContext("2d").drawImage(img,0,0,c.width,c.height);
-      URL.revokeObjectURL(url);res(toJpeg(c,q));
-    };
-    img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error("bad image"));};
-    img.src=url;
-  });
+function release(b){if(b&&b.close)b.close();else if(b&&b._u)URL.revokeObjectURL(b._u);}
+async function squareCrop(file,px,q){
+  const img=await decode(file);
+  const w=img.width||img.naturalWidth, h=img.height||img.naturalHeight;
+  const side=Math.min(w,h);
+  const c=document.createElement("canvas");c.width=c.height=px;
+  c.getContext("2d").drawImage(img,(w-side)/2,(h-side)/2,side,side,0,0,px,px);
+  release(img);
+  return c.toDataURL("image/jpeg",q);
 }
-function shrink(file,maxPx){
-  return new Promise((res,rej)=>{
-    const img=new Image(), url=URL.createObjectURL(file);
-    img.onload=()=>{
-      const sc=Math.min(1,maxPx/Math.max(img.width,img.height));
+async function shrinkPlain(file,maxPx,q){
+  const img=await decode(file);
+  const w=img.width||img.naturalWidth, h=img.height||img.naturalHeight;
+  if(!w||!h){release(img);throw new Error("Image had no dimensions");}
+  const sc=Math.min(1,maxPx/Math.max(w,h));
+  const c=document.createElement("canvas");
+  c.width=Math.max(1,Math.round(w*sc));c.height=Math.max(1,Math.round(h*sc));
+  c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+  release(img);
+  const d=toJpeg(c,q);
+  if(!d||d.length<200)throw new Error("Couldn't encode the image");
+  return d;
+}
+async function shrink(file,maxPx){
+  const img=await decode(file);
+  const W=img.width||img.naturalWidth, H=img.height||img.naturalHeight;
+  {
+      const sc=Math.min(1,maxPx/Math.max(W,H));
       const c=document.createElement("canvas");
-      c.width=Math.round(img.width*sc);c.height=Math.round(img.height*sc);
+      c.width=Math.round(W*sc);c.height=Math.round(H*sc);
       const x=c.getContext("2d");
       x.drawImage(img,0,0,c.width,c.height);
       // light contrast boost — thermal receipts scan badly flat
@@ -1695,11 +1722,9 @@ function shrink(file,maxPx){
         a[i]=a[i+1]=a[i+2]=v;
       }
       x.putImageData(d,0,0);
-      URL.revokeObjectURL(url);res(c);
-    };
-    img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error("bad image"));};
-    img.src=url;
-  });
+      release(img);
+      return c;
+  }
 }
 function parseReceipt(text){
   const lines=text.split(/\n/).map(l=>l.trim()).filter(Boolean);
@@ -1736,11 +1761,23 @@ function parseReceipt(text){
 }
 async function scanReceipt(file,ocr){
   const out=$("#scanOut");
+  const myDraft=draft;
+  // paint the raw photo straight away so there is feedback before any processing
+  const preview=URL.createObjectURL(file);
+  myDraft.previewUrl=preview;paintReceipt();
   try{
-    draft.pendingImg=await shrinkPlain(file,1400,.62);
-    draft.receipt=true;
+    const d=await shrinkPlain(file,1400,.62);
+    if(draft!==myDraft)return;
+    myDraft.pendingImg=d;myDraft.previewUrl=null;
+    URL.revokeObjectURL(preview);
     paintReceipt();
-  }catch(e){}
+  }catch(e){
+    if(draft!==myDraft)return;
+    myDraft.pendingImg=null;myDraft.previewUrl=null;
+    URL.revokeObjectURL(preview);paintReceipt();
+    out.innerHTML=`<div class="warn" style="margin-bottom:14px"><b>Couldn't attach that photo.</b> ${esc(e.message||"Unknown error")} \u2014 try taking it again, or pick a JPEG from your library.</div>`;
+    return;
+  }
   if(!ocr){out.innerHTML=`<div class="warn" style="margin-bottom:14px">Receipt attached. Enter the amount yourself, or tap <b>Scan a receipt</b> to try reading it.</div>`;return;}
   out.innerHTML=`<div class="warn" style="margin-bottom:14px">Reading the receipt\u2026 first scan downloads the reader, so give it a moment.</div>`;
   try{
