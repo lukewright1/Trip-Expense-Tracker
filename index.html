@@ -53,11 +53,12 @@ h1,h2,h3{font-family:var(--font);font-weight:700;letter-spacing:-.015em;margin:0
   font-feature-settings:"tnum" 1;letter-spacing:-.01em}
 button,input,select,textarea{font:inherit;color:inherit}
 button{border:0;background:none;cursor:pointer}
-input,select,textarea{
+input:not([type=checkbox]):not([type=radio]),select,textarea{
   width:100%;padding:13px 14px;border:1px solid var(--line);border-radius:11px;
   background:var(--card);font-size:16px;appearance:none;
   transition:border-color .14s, box-shadow .14s;
 }
+input[type=checkbox]{width:22px;height:22px;flex:none;accent-color:var(--adriatic);margin:0}
 input:focus,select:focus,textarea:focus{border-color:var(--adriatic);box-shadow:0 0 0 3px rgba(18,140,140,.14)}
 select{background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);
   background-position:calc(100% - 18px) 50%,calc(100% - 13px) 50%;
@@ -114,7 +115,16 @@ main{padding:16px 14px 24px;max-width:640px;margin:0 auto}
 .av.lg{width:52px;height:52px;font-size:17px}
 .av.ring{box-shadow:0 0 0 2px var(--card),0 0 0 3.5px var(--adriatic)}
 /* people editor — avatar column, stacked fields, nothing competing for one line */
-.prow{display:flex;gap:12px;padding:15px 14px;border-bottom:1px solid var(--line-soft)}
+.prow{display:flex;gap:12px;padding:11px 14px;border-bottom:1px solid var(--line-soft);
+  align-items:center;width:100%;text-align:left}
+.prow:active{background:var(--paper)}
+.pmain{flex:1;min-width:0}
+.pnm{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.psub{font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.pedit{flex:none;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;
+  color:var(--muted)}
+.pedit svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.6;
+  stroke-linecap:round;stroke-linejoin:round}
 .prow:last-child{border-bottom:0}
 .pface{flex:none;position:relative;padding:0;line-height:0}
 .pplus{position:absolute;right:-2px;bottom:-2px;width:20px;height:20px;border-radius:50%;
@@ -369,7 +379,34 @@ nav button.on::before{content:"";position:absolute;top:0;left:50%;transform:tran
 
   <!-- TRIP -->
   <section class="screen" id="s-trip">
-    <div class="eyebrow">Trip</div>
+<div class="eyebrow">Your trips</div>
+    <div class="card" id="tripsBody"></div>
+    <div class="card pad" style="margin-top:-2px">
+      <div style="font-weight:700;margin-bottom:4px">Start another trip</div>
+      <p class="note" style="margin:0 0 12px">Each trip keeps its own expenses, people and balances. Switching is one tap.</p>
+      <input id="newTrip" placeholder="e.g. Mammoth, March 2027" autocomplete="off">
+      <label style="display:flex;align-items:center;gap:10px;margin:12px 0 14px;font-size:14px;line-height:1.35">
+        <input type="checkbox" id="carryPeople" checked>
+        <span>Bring the same people and currency over from <b id="carryFrom">this trip</b></span></label>
+      <button class="btn teal" id="addTrip">Create trip</button>
+    </div>
+
+    <div class="eyebrow">People splitting costs</div>
+    <div class="card" id="peopleBody"></div>
+    <div class="card pad" style="margin-top:-2px">
+      <div class="split2">
+        <input id="newPerson" placeholder="Add a name or couple" autocomplete="off">
+        <button class="btn teal" style="flex:0 0 88px" id="addPerson">Add</button>
+      </div>
+    </div>
+
+    <div class="eyebrow">Default payer</div>
+    <div class="card pad">
+      <select id="mePick"></select>
+      <p class="note" style="margin:8px 0 0">New expenses start with this person as the payer. Pick yourself, or whoever pays most often. Saved on this phone only.</p>
+    </div>
+
+    <div class="eyebrow">Name and currency</div>
     <div class="card pad">
       <label class="f"><span>Trip name</span><input id="setName" placeholder="Croatia 2026"></label>
       <div class="split2">
@@ -384,33 +421,6 @@ nav button.on::before{content:"";position:absolute;top:0;left:50%;transform:tran
       <div class="seg" id="dispCurSeg" style="margin:-8px 0 8px"></div>
       <p class="note" style="margin:0 0 16px">Totals, balances and settle-up all display in this. Expenses stay recorded in <b id="bookCur">EUR</b> exactly as they were paid.</p>
       <button class="btn teal" id="saveTrip">Save trip</button>
-    </div>
-
-    <div class="eyebrow">Your trips</div>
-    <div class="card" id="tripsBody"></div>
-    <div class="card pad" style="margin-top:-2px">
-      <div class="split2">
-        <input id="newTrip" placeholder="New trip name" autocomplete="off">
-        <button class="btn teal" style="flex:0 0 88px" id="addTrip">Add</button>
-      </div>
-      <label style="display:flex;align-items:center;gap:9px;margin-top:12px;font-size:14px">
-        <input type="checkbox" id="carryPeople" checked style="width:20px;height:20px;flex:none">
-        <span>Copy the people and currency from this trip</span></label>
-    </div>
-
-    <div class="eyebrow">Which one are you?</div>
-    <div class="card pad">
-      <select id="mePick"></select>
-      <p class="note" style="margin:8px 0 0">Just for this phone \u2014 it sets the default payer on new expenses and marks your own line in the lists. Not shared with anyone.</p>
-    </div>
-
-    <div class="eyebrow">People</div>
-    <div class="card" id="peopleBody"></div>
-    <div class="card pad" style="margin-top:-2px">
-      <div class="split2">
-        <input id="newPerson" placeholder="Add a name or couple" autocomplete="off">
-        <button class="btn teal" style="flex:0 0 88px" id="addPerson">Add</button>
-      </div>
     </div>
 
     <div class="eyebrow">Sync across phones</div>
@@ -639,9 +649,23 @@ function saveSync(){
   if(sync)m[S.tripId]=sync;else delete m[S.tripId];
   localStorage.setItem(LSYNC,JSON.stringify(m));
 }
+function tripTouched(t){
+  let m=t.metaUpd||0;
+  for(const k in (t.items||{})){const u=t.items[k].upd||0;if(u>m)m=u;}
+  for(const k in (t.people||{})){const u=t.people[k].upd||0;if(u>m)m=u;}
+  return m;
+}
+function whenAgo(ts){
+  if(!ts)return "";
+  const d=Math.floor((Date.now()-ts)/86400000);
+  if(d<=0)return "today";
+  if(d===1)return "yesterday";
+  if(d<30)return d+"d ago";
+  return new Date(ts).toLocaleDateString(undefined,{month:"short",year:"numeric"});
+}
 function tripList(){
   return Object.values(store.trips).sort((a,b)=>
-    (a.archived?1:0)-(b.archived?1:0) || (b.metaUpd||0)-(a.metaUpd||0));
+    (a.archived?1:0)-(b.archived?1:0) || tripTouched(b)-tripTouched(a));
 }
 function tripSpend(t){
   return Object.values(t.items||{}).filter(i=>!i.del&&i.kind!=="pay").reduce((a,i)=>a+i.cents,0);
@@ -751,7 +775,8 @@ function render(){
   $("#setAlt").innerHTML=curOpts(S.alt,"None \u2014 single currency");
   curHint();
   $("#setRate").value=S.rate;$("#curA").textContent=S.cur;$("#curB").textContent=S.alt||"—";
-  $("#mePick").innerHTML=`<option value="">Not set</option>`+
+  const cf=$("#carryFrom");if(cf)cf.textContent=S.name||"this trip";
+  $("#mePick").innerHTML=`<option value="">No default</option>`+
     people().map(p=>`<option value="${p.id}"${meId()===p.id?" selected":""}>${esc(p.name)}</option>`).join("");
   $("#dispCurSeg").innerHTML=curSeg();$("#bookCur").textContent=S.cur;
   showIf("#dispCurSeg",twoCur());
@@ -790,7 +815,14 @@ function renderCatBreak(){
 function renderLog(all){
   const el=$("#logBody");
   const list=filter==="all"?all:all.filter(i=>(i.cat||"💶")===filter);
-  if(!people().length){el.innerHTML=`<div class="empty"><h3>Nobody aboard yet</h3><p>Add the people on the trip under <b>Trip</b>, then start logging what everyone pays for.</p></div>`;return;}
+  if(!people().length){
+    el.innerHTML=`<div class="empty"><h3>Set up the trip first</h3>
+      <p>Add everyone splitting costs, then log what each person pays for.</p>
+      <button class="btn teal" id="goSetup" style="max-width:240px;margin:18px auto 0">Add people</button></div>`;
+    const g=$("#goSetup");
+    if(g)g.onclick=()=>{document.querySelector('nav button[data-tab="trip"]').click();
+      setTimeout(()=>{const n=$("#newPerson");if(n){n.scrollIntoView({block:"center",behavior:"smooth"});n.focus();}},200);};
+    return;}
   if(!list.length){el.innerHTML=`<div class="empty"><h3>${filter==="all"?"Clean slate":"Nothing in "+catName(filter)}</h3><p>${filter==="all"?"Tap <b>Add expense</b> the moment someone pays for something. Takes about five seconds.":"Tap <b>All</b> to see everything again."}</p></div>`;return;}
   let h="",day="";
   list.forEach(it=>{
@@ -801,7 +833,7 @@ function renderLog(all){
     const sub=it.kind==="pay"?`${nameOf(it.payer)} → ${nameOf(it.with[0])}`
       :`${payTxt} · split ${who===people().length?"evenly":`${who} way${who===1?"":"s"}`}`;
     const alt=otherCur()&&S.rate?`<div class="b money">${fmt(toOther(it.cents),otherCur())}</div>`:"";
-    h+=`<div class="swipe" data-row="${it.id}">
+    h+=`<div class="swipe">
       <div class="acts"><button class="ed" data-sw-edit="${it.id}">Edit</button><button class="dl" data-sw-del="${it.id}">Delete</button></div>
       <button class="item" data-edit="${it.id}">
       <div style="display:flex;align-items:center;flex:none">
@@ -886,7 +918,7 @@ function renderTrips(){
     return `<div class="row" style="padding:12px 14px;${t.archived?"opacity:.62":""}">
       <button style="flex:1;text-align:left;min-width:0" data-trip="${t.tripId}">
         <div style="font-weight:${on?700:600}">${on?"● ":""}${esc(t.name||"Trip")}${t.archived?" · archived":""}</div>
-        <div class="note" style="margin:0">${cnt} ${cnt===1?"entry":"entries"} · ${n} ${n===1?"unit":"units"} · ${fmt(tripSpend(t),t.cur)}</div>
+        <div class="note" style="margin:0">${fmt(tripSpend(t),t.cur)} · ${cnt} ${cnt===1?"entry":"entries"} · ${n} ${n===1?"person":"people"}${tripTouched(t)?` · ${whenAgo(tripTouched(t))}`:""}</div>
       </button>
       <button class="btn ghost sm" data-arch="${t.tripId}">${t.archived?"Restore":"Archive"}</button>
       ${ts.length>1?`<button class="btn danger sm" data-deltrip="${t.tripId}">✕</button>`:""}
@@ -895,21 +927,23 @@ function renderTrips(){
 }
 function renderPeople(){
   const ps=people();
-  $("#peopleBody").innerHTML=ps.length?ps.map(p=>`<div class="prow">
-    <button class="pface" data-pic="${p.id}">${avatar(p.id,"lg")}<span class="pplus">+</span></button>
-    <div class="pbody2">
-      <input class="pname" data-name="${p.id}" value="${esc(p.name)}" placeholder="Name" autocomplete="off">
-      <div class="pmeta">
-        <label class="pfield"><span>People</span>
-          <input data-size="${p.id}" inputmode="numeric" value="${p.size||1}"></label>
-        <label class="pfield grow"><span>Venmo</span>
-          <input data-venmo="${p.id}" value="${p.venmo?(/^https?:/.test(p.venmo)?esc(p.venmo):"@"+esc(p.venmo)):""}" placeholder="@handle"></label>
-        <button class="psm" data-qr="${p.id}">Scan</button>
-        <button class="psm del" data-rm="${p.id}">Remove</button>
-      </div>
-    </div></div>`).join("")
-    :`<div class="empty" style="padding:26px">Nobody added yet.</div>`;
+  $("#peopleBody").innerHTML=ps.length?ps.map(p=>{
+    const bits=[];
+    if((p.size||1)>1)bits.push(`${p.size} people`);
+    if(p.venmo)bits.push(/^https?:/.test(p.venmo)?"Venmo linked":"@"+p.venmo);
+    if(meId()===p.id)bits.unshift("you");
+    return `<button class="prow" data-edit-person="${p.id}">
+      ${avatar(p.id)}
+      <span class="pmain">
+        <span class="pnm">${esc(p.name)}</span>
+        <span class="psub">${bits.length?esc(bits.join(" · ")):"1 person"}</span>
+      </span>
+      <span class="pedit"><svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4.5 16.6 15.8 5.3a2 2 0 0 1 2.9 2.9L7.4 19.5l-3.8.9z"/></svg></span>
+    </button>`;}).join("")
+    :`<div class="empty" style="padding:26px"><h3>Nobody added yet</h3><p>Add everyone splitting costs. Enter a couple as one line if they settle together.</p></div>`;
 }
+
 
 const AVC=["#128C8C","#1E6F8E","#C2772B","#7A5EA6","#2E8B57","#B8475C","#4A6FA5","#8C6A2F"];
 function avColor(id){let h=0;for(const c of String(id))h=(h*31+c.charCodeAt(0))>>>0;return AVC[h%AVC.length];}
@@ -1374,68 +1408,68 @@ function addPerson(){
 }
 $("#addPerson").onclick=addPerson;
 $("#newPerson").onkeydown=e=>{if(e.key==="Enter")addPerson();};
-$("#peopleBody").oninput=e=>{
-  const nm=e.target.closest("[data-name]");
-  if(nm){
-    const p=S.people[nm.dataset.name];
-    const val=nm.value.trim();
-    if(val){S.people[p.id]={...p,name:val,upd:now()};persist();queuePush();}
-    return;
-  }
-  const v=e.target.closest("[data-venmo]");
-  if(v){
-    const p=S.people[v.dataset.venmo];
-    const rv=v.value.trim();
+function openPerson2(id){
+  const p=S.people[id];if(!p)return;
+  sheet2(p.name||"Person",`
+    <div style="display:flex;justify-content:center;margin-bottom:18px">
+      <button id="edPic" style="position:relative">${avatar(id,"lg")}
+        <span class="pplus">+</span></button>
+    </div>
+    <label class="f"><span>Name</span><input id="edName" value="${esc(p.name)}" autocomplete="off"></label>
+    <label class="f"><span>How many people is this?</span>
+      <input id="edSize" inputmode="numeric" value="${p.size||1}"></label>
+    <p class="note" style="margin:-8px 0 16px">Enter 2 for a couple settling together. Costs split per head, payments stay between households.</p>
+    <label class="f"><span>Venmo</span>
+      <div class="split2"><input id="edVenmo" value="${p.venmo?(/^https?:/.test(p.venmo)?esc(p.venmo):"@"+esc(p.venmo)):""}" placeholder="@handle" autocomplete="off">
+      <button class="btn ghost" style="flex:0 0 92px" id="edQr">Scan</button></div></label>
+    <button class="btn teal" id="edSave" style="margin-bottom:10px">Save</button>
+    <button class="btn danger" id="edDel">Remove from trip</button>`);
+  const pick=(accept,cb)=>{
+    const i=document.createElement("input");
+    i.type="file";i.accept=accept;i.style.display="none";
+    document.body.appendChild(i);
+    i.onchange=async e=>{const f=e.target.files[0];i.remove();if(f)cb(f);};
+    i.click();
+  };
+  $("#edPic").onclick=()=>pick("image/*",async f=>{
+    const d=await openCropper(f,{round:true,out:200,q:.62,
+      title:"Frame the face",hint:"Drag to move · pinch to zoom"});
+    if(!d)return;
+    S.people[id]={...S.people[id],pic:d,upd:now()};save();
+    $("#sheet2").classList.remove("on");toast("Photo updated");
+  });
+  $("#edQr").onclick=()=>pick("image/*",f=>scanVenmoQR(f,id));
+  $("#edSave").onclick=()=>{
+    const nm=$("#edName").value.trim();
+    if(!nm)return toast("Give them a name");
+    const rv=$("#edVenmo").value.trim();
     const clean=/venmo\.com\/code\?/i.test(rv)?rv
       :rv.replace(/^@+/,"").replace(/^.*venmo\.com\/(u\/)?/,"").split(/[/?#\s]/)[0];
-    S.people[p.id]={...p,venmo:clean,upd:now()};
-    persist();queuePush();return;
-  }
-  const i=e.target.closest("[data-size]");if(!i)return;
-  const n=Math.max(1,parseInt(i.value)||1);
-  const p=S.people[i.dataset.size];
-  S.people[p.id]={...p,size:n,upd:now()};
-  persist();queuePush();
+    S.people[id]={...S.people[id],name:nm,size:Math.max(1,parseInt($("#edSize").value)||1),
+      venmo:clean,upd:now()};
+    save();$("#sheet2").classList.remove("on");toast("Saved");
+  };
+  $("#edDel").onclick=async()=>{
+    const used=items().some(i=>i.payer===id||(i.with||[]).includes(id)||(i.paid&&i.paid[id]));
+    if(!await ask(`Remove ${nameOf(id)}?`,
+      used?"They're on existing expenses. Those stay in the log and their share spreads across whoever is left."
+          :"They'll be taken off this trip.","Remove"))return;
+    S.people[id]={...S.people[id],del:true,upd:now()};
+    if(meId()===id)setMe(null);
+    save();$("#sheet2").classList.remove("on");toast("Removed");
+  };
+}
+$("#peopleBody").onclick=e=>{
+  const b=e.target.closest("[data-edit-person]");
+  if(b)openPerson2(b.dataset.editPerson);
 };
-$("#peopleBody").onchange=e=>{
-  if(e.target.closest("[data-name]"))render();
-};
-$("#peopleBody").onclick=async e=>{
-  const pic=e.target.closest("[data-pic]");
-  if(pic){
-    let inp=$("#picIn");
-    if(!inp){
-      inp=document.createElement("input");
-      inp.type="file";inp.accept="image/*";inp.id="picIn";inp.style.display="none";
-      document.body.appendChild(inp);
-    }
-    inp.onchange=async ev=>{
-      const f=ev.target.files[0];ev.target.value="";if(!f)return;
-      const d=await openCropper(f,{round:true,out:200,q:.62,
-        title:"Frame the face",hint:"Drag to move \u00b7 pinch to zoom \u00b7 what you see is what is saved"});
-      if(!d)return;
-      const pp=S.people[pic.dataset.pic];
-      S.people[pp.id]={...pp,pic:d,upd:now()};save();
-    };
-    inp.click();return;
-  }
-  const qr=e.target.closest("[data-qr]");
-  if(qr){
-    let inp=$("#qrIn");
-    if(!inp){
-      inp=document.createElement("input");
-      inp.type="file";inp.accept="image/*";inp.id="qrIn";inp.style.display="none";
-      document.body.appendChild(inp);
-    }
-    inp.onchange=ev=>{const f=ev.target.files[0];ev.target.value="";if(f)scanVenmoQR(f,qr.dataset.qr);};
-    inp.click();return;
-  }
-  const b=e.target.closest("[data-rm]");if(!b)return;
-  const id=b.dataset.rm;
-  const used=items().some(i=>i.payer===id||i.with.includes(id));
-  if(used&&!await ask(`Remove ${nameOf(id)}?`,"They're on existing expenses. Those stay in the log and still count toward balances.","Remove"))return;
-  S.people[id]={...S.people[id],del:true,upd:now()};save();
-};
+function addPerson(){
+  const n=$("#newPerson").value.trim();if(!n)return;
+  const id=uid();S.people[id]={id,name:n,made:now(),upd:now()};
+  $("#newPerson").value="";save();
+}
+$("#addPerson").onclick=addPerson;
+$("#newPerson").onkeydown=e=>{if(e.key==="Enter")addPerson();};
 $("#wipe").onclick=async()=>{
   if(!await ask("Erase this trip?","Every expense and person on this phone. This cannot be undone.","Erase everything"))return;
   const keep=S.tripId;S=blank();S.tripId=keep;S.name="Trip";store.trips[keep]=S;sync=null;saveSync();stopStream();save();toast("Erased");
@@ -1484,9 +1518,16 @@ function renderSync(){
   $("#syncLabel").textContent=on
     ?`${sync.host==="fb"?"Firebase":"JSONBin"} · ${sync.pass?"encrypted end to end":"NOT encrypted"}`
     :"Not syncing — this phone only";
-  const sk=$("#syncOn").querySelector("#shareKeyIn");
-  if(sk)sk.closest(".f").parentNode.querySelectorAll("#shareKeyIn,#saveShareKey").forEach(x=>{
-    x.style.display=sync&&sync.host==="fb"?"none":"";});
+  // the JSONBin-only sharing key has no meaning on Firebase
+  const hideKey=!sync||sync.host==="fb";
+  ["#shareKeyIn","#saveShareKey"].forEach(sel=>{
+    const el=$(sel);if(!el)return;
+    const row=el.closest("label.f")||el;
+    row.style.display=hideKey?"none":"";
+  });
+  const note=$("#saveShareKey");
+  if(note&&note.nextElementSibling&&note.nextElementSibling.classList.contains("note"))
+    note.nextElementSibling.style.display=hideKey?"none":"";
 }
 /* ---- end-to-end encryption ----
    The trip passphrase never leaves this device. Whatever host we sync through
