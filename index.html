@@ -120,6 +120,25 @@ main{padding:16px 14px 24px;max-width:640px;margin:0 auto}
 .psm{align-self:flex-end;padding:10px 12px;border:1.5px solid var(--line);border-radius:11px;
   background:var(--card);font-size:13px;font-weight:600;white-space:nowrap}
 .psm.del{color:var(--coral);border-color:var(--coral)}
+/* cropper — one component, used for headshots and for framing a receipt */
+#crop{position:fixed;inset:0;z-index:300;display:none;background:#0B2027}
+#crop.on{display:flex;flex-direction:column}
+#cropHead{display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:calc(env(safe-area-inset-top) + 12px) 16px 12px;color:#fff}
+#cropHead h2{font-size:17px;font-weight:700}
+#cropStage{flex:1;position:relative;overflow:hidden;touch-action:none}
+#cropImg{position:absolute;left:50%;top:50%;transform-origin:0 0;will-change:transform;
+  pointer-events:none;user-select:none}
+#cropMask{position:absolute;inset:0;pointer-events:none}
+#cropMask .hole{position:absolute;box-shadow:0 0 0 9999px rgba(11,32,39,.72);
+  border:2px solid rgba(255,255,255,.9)}
+#cropMask .hole.round{border-radius:50%}
+#cropMask .grid{position:absolute;inset:0;opacity:.35}
+#cropMask .grid i{position:absolute;background:#fff}
+#cropFoot{padding:12px 16px calc(14px + env(safe-area-inset-bottom));
+  display:flex;gap:10px;align-items:center}
+#cropFoot .btn{flex:1}
+#cropHint{color:#8FB3B8;font-size:12px;text-align:center;padding:0 16px 10px}
 .avstack{display:flex;align-items:center}
 .avstack .av:not(:first-child){margin-left:-11px;box-shadow:0 0 0 2px var(--card)}
 .pos{color:var(--adriatic-dk)}.neg{color:var(--coral)}
@@ -469,6 +488,21 @@ nav button.on .ic{filter:drop-shadow(0 0 8px rgba(242,168,29,.8))}
       <button class="btn ghost" id="askNo">Cancel</button>
       <button class="btn teal" id="askYes">Confirm</button>
     </div>
+  </div>
+</div>
+
+<!-- CROPPER -->
+<div id="crop">
+  <div id="cropHead">
+    <button class="x" id="cropCancel" aria-label="Cancel" style="background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.25);color:#fff">✕</button>
+    <h2 id="cropTitle">Position the photo</h2>
+    <button class="x" id="cropReset" aria-label="Reset" style="background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.25);color:#fff;font-size:14px">⟲</button>
+  </div>
+  <div id="cropStage"><img id="cropImg" alt=""><div id="cropMask"></div></div>
+  <div id="cropHint">Drag to move · pinch to zoom</div>
+  <div id="cropFoot">
+    <button class="btn ghost" id="cropWider" style="flex:0 0 96px;background:transparent;border-color:rgba(255,255,255,.3);color:#fff">Fit all</button>
+    <button class="btn teal" id="cropDone">Use this</button>
   </div>
 </div>
 
@@ -1008,8 +1042,14 @@ function paintReceipt(){
 }
 $("#scanBtn").onclick=()=>$("#scanIn").click();
 $("#attachBtn").onclick=()=>$("#attachIn").click();
-$("#scanIn").onchange=e=>{const f=e.target.files[0];e.target.value="";if(f)scanReceipt(f,true);};
-$("#attachIn").onchange=e=>{const f=e.target.files[0];e.target.value="";if(f)scanReceipt(f,false);};
+async function framedReceipt(file,ocr){
+  const d=await openCropper(file,{aspect:0.68,out:1100,q:.6,
+    title:"Frame the receipt",hint:"Crop out the table \u2014 the tighter the crop, the better it reads"});
+  if(!d)return;
+  scanReceipt(await (await fetch(d)).blob(),ocr);
+}
+$("#scanIn").onchange=e=>{const f=e.target.files[0];e.target.value="";if(f)framedReceipt(f,true);};
+$("#attachIn").onchange=e=>{const f=e.target.files[0];e.target.value="";if(f)framedReceipt(f,false);};
 $("#fAmt").oninput=()=>{paintConv();sumNote();if(!draft.paidTouched){evenPay();paintPaid();}else paidSum();};
 $("#fCurSeg").onclick=async e=>{
   const b=e.target.closest("[data-cur]");if(!b)return;
@@ -1320,11 +1360,11 @@ $("#peopleBody").onclick=async e=>{
     }
     inp.onchange=async ev=>{
       const f=ev.target.files[0];ev.target.value="";if(!f)return;
-      try{
-        const d=await squareCrop(f,160,.6);
-        const pp=S.people[pic.dataset.pic];
-        S.people[pp.id]={...pp,pic:d,upd:now()};save();
-      }catch(x){toast("Couldn't read that image");}
+      const d=await openCropper(f,{round:true,out:200,q:.62,
+        title:"Frame the face",hint:"Drag to move \u00b7 pinch to zoom \u00b7 what you see is what is saved"});
+      if(!d)return;
+      const pp=S.people[pic.dataset.pic];
+      S.people[pp.id]={...pp,pic:d,upd:now()};save();
     };
     inp.click();return;
   }
@@ -1767,6 +1807,118 @@ function loadTesseract(){
   });
   return tessReady;
 }
+/* ---------------- cropper ----------------
+   One pan/zoom frame, reused for round headshots and for framing a receipt
+   before OCR. Returns a data URL, or null if the person backs out. */
+let cropState=null;
+function openCropper(file,opts){
+  return new Promise(async resolve=>{
+    let img;
+    try{img=await decode(file);}catch(e){toast("Can't read that image");return resolve(null);}
+    const iw=img.width||img.naturalWidth, ih=img.height||img.naturalHeight;
+    const url=URL.createObjectURL(file);
+    const el=$("#crop"), stage=$("#cropStage"), pic=$("#cropImg"), mask=$("#cropMask");
+    $("#cropTitle").textContent=opts.title||"Position the photo";
+    $("#cropHint").textContent=opts.hint||"Drag to move · pinch to zoom";
+    el.classList.add("on");
+    pic.src=url;
+
+    // frame geometry: the visible hole the export is taken from
+    const sw=stage.clientWidth, sh=stage.clientHeight;
+    const pad=opts.round?28:16;
+    let fw,fh;
+    if(opts.round){fw=fh=Math.min(sw,sh)-pad*2;}
+    else{
+      fh=sh-pad*2; fw=Math.min(sw-pad*2, fh*(opts.aspect||0.72));
+      if(fw<120){fw=sw-pad*2; fh=fw/(opts.aspect||0.72);}
+    }
+    const fx=(sw-fw)/2, fy=(sh-fh)/2;
+    mask.innerHTML=`<div class="hole${opts.round?" round":""}" style="left:${fx}px;top:${fy}px;width:${fw}px;height:${fh}px"></div>`+
+      (opts.round?"":`<div class="grid">
+        <i style="left:${fx+fw/3}px;top:${fy}px;width:1px;height:${fh}px"></i>
+        <i style="left:${fx+2*fw/3}px;top:${fy}px;width:1px;height:${fh}px"></i>
+        <i style="left:${fx}px;top:${fy+fh/3}px;width:${fw}px;height:1px"></i>
+        <i style="left:${fx}px;top:${fy+2*fh/3}px;width:${fw}px;height:1px"></i></div>`);
+
+    const coverScale=Math.max(fw/iw,fh/ih);
+    const fitScale=Math.min(fw/iw,fh/ih);
+    let k=coverScale, tx=0, ty=0;   // k = px per image px; t = offset of image centre from frame centre
+
+    function clamp(){
+      const halfW=(iw*k)/2, halfH=(ih*k)/2;
+      const limX=Math.max(0,halfW-fw/2), limY=Math.max(0,halfH-fh/2);
+      tx=Math.max(-limX,Math.min(limX,tx));
+      ty=Math.max(-limY,Math.min(limY,ty));
+    }
+    function paint(){
+      clamp();
+      const w=iw*k, h=ih*k;
+      pic.style.width=w+"px";pic.style.height=h+"px";
+      pic.style.transform=`translate(${fx+fw/2+tx-w/2}px,${fy+fh/2+ty-h/2}px)`;
+      pic.style.left="0";pic.style.top="0";
+    }
+    pic.onload=paint; if(pic.complete)paint();
+
+    // gestures
+    let pts=new Map(), startK=k, startD=0, startT={x:0,y:0}, startC={x:0,y:0};
+    const dist=a=>Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);
+    const mid=a=>({x:(a[0].x+a[1].x)/2,y:(a[0].y+a[1].y)/2});
+    const arr=()=>[...pts.values()];
+    stage.onpointerdown=e=>{
+      stage.setPointerCapture(e.pointerId);
+      pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+      const a=arr();
+      startT={x:tx,y:ty};startK=k;
+      if(a.length===2){startD=dist(a);startC=mid(a);}
+      else startC={x:e.clientX,y:e.clientY};
+    };
+    stage.onpointermove=e=>{
+      if(!pts.has(e.pointerId))return;
+      pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+      const a=arr();
+      if(a.length>=2){
+        const d=dist(a);if(!startD)return;
+        k=Math.max(fitScale*0.6,Math.min(coverScale*8,startK*(d/startD)));
+        const c=mid(a);
+        tx=startT.x+(c.x-startC.x);ty=startT.y+(c.y-startC.y);
+      }else{
+        tx=startT.x+(e.clientX-startC.x);ty=startT.y+(e.clientY-startC.y);
+      }
+      paint();
+    };
+    const up=e=>{
+      pts.delete(e.pointerId);
+      if(pts.size<2)startD=0;
+      const a=arr();
+      startT={x:tx,y:ty};startK=k;
+      if(a.length===1)startC={x:a[0].x,y:a[0].y};
+    };
+    stage.onpointerup=up;stage.onpointercancel=up;
+
+    function finish(ok){
+      el.classList.remove("on");
+      stage.onpointerdown=stage.onpointermove=stage.onpointerup=stage.onpointercancel=null;
+      pic.removeAttribute("src");
+      URL.revokeObjectURL(url);
+      if(!ok){release(img);return resolve(null);}
+      // map the frame back onto the source image
+      const sx=iw/2+(-fw/2-tx)/k, sy=ih/2+(-fh/2-ty)/k;
+      const srcW=fw/k, srcH=fh/k;
+      const outW=opts.out||512, outH=Math.round(outW*(fh/fw));
+      const c=document.createElement("canvas");c.width=outW;c.height=outH;
+      const x=c.getContext("2d");
+      x.fillStyle="#fff";x.fillRect(0,0,outW,outH);
+      x.drawImage(img,sx,sy,srcW,srcH,0,0,outW,outH);
+      release(img);
+      resolve(c.toDataURL("image/jpeg",opts.q||0.6));
+    }
+    $("#cropCancel").onclick=()=>finish(false);
+    $("#cropDone").onclick=()=>finish(true);
+    $("#cropReset").onclick=()=>{k=coverScale;tx=ty=0;paint();};
+    $("#cropWider").onclick=()=>{k=fitScale;tx=ty=0;paint();};
+  });
+}
+
 async function decode(file){
   if(window.createImageBitmap){
     try{return await createImageBitmap(file);}catch(e){}
@@ -1823,42 +1975,111 @@ async function shrink(file,maxPx){
   }
 }
 function parseReceipt(text){
-  const lines=text.split(/\n/).map(l=>l.trim()).filter(Boolean);
-  const num=l=>{
-    const m=[...l.matchAll(/(\d{1,3}(?:[.,]\d{3})*|\d+)[.,](\d{2})\b/g)];
-    if(!m.length)return null;
-    const last=m[m.length-1];
-    return parseFloat((last[1].replace(/[.,]/g,""))+"."+last[2]);
+  const lines=text.split(/\n/).map(l=>l.replace(/\s+/g," ").trim()).filter(Boolean);
+  // OCR confuses O/o with 0 and l/I with 1 inside numbers
+  const MAP={O:"0",o:"0",D:"0",Q:"0",l:"1",I:"1","|":"1",S:"5",B:"8",Z:"2"};
+  const fix=l=>{
+    const a=l.split("");
+    for(let i=0;i<a.length;i++){
+      if(!(a[i] in MAP))continue;
+      const pv=a[i-1]||"", nx=a[i+1]||"";
+      if(/[\d.,]/.test(pv)||/[\d.,]/.test(nx))a[i]=MAP[a[i]];
+    }
+    return a.join("");
   };
-  let total=null,how=null;
-  // strongest signal: a line naming the total, ignoring subtotals
+  const amounts=l=>{
+    const out=[];
+    for(const m of fix(l).matchAll(/(\d{1,3}(?:[.,\s]\d{3})*|\d+)[.,](\d{2})(?!\d)/g)){
+      const v=parseFloat(m[1].replace(/[.,\s]/g,"")+"."+m[2]);
+      if(isFinite(v)&&v>0&&v<1000000)out.push(v);
+    }
+    return out;
+  };
+  const last=l=>{const a=amounts(l);return a.length?a[a.length-1]:null;};
+
+  const labelled={};
+  const want=[
+    ["tip",/\b(tip|gratuity|service charge)\b/i],
+    ["tax",/\b(tax|vat|gst|hst|pdv)\b/i],
+    ["subtotal",/\bsub\s?total\b/i],
+    ["total",/\b(grand total|amount due|balance due|total due|to pay|total)\b/i]
+  ];
   for(const l of lines){
-    if(/sub ?total|subtotal/i.test(l))continue;
-    if(/\b(total|amount due|balance due|grand total|to pay)\b/i.test(l)){
-      const v=num(l);
-      if(v!=null&&(total==null||v>=total)){total=v;how="total line";}
+    for(const [key,re] of want){
+      if(key==="total"&&/\bsub\s?total\b/i.test(l))continue;
+      if(labelled[key]!=null)continue;
+      if(re.test(l)){const v=last(l);if(v!=null)labelled[key]=v;}
     }
   }
-  if(total==null){
-    const all=lines.map(num).filter(v=>v!=null);
-    if(all.length){total=Math.max(...all);how="largest amount";}
+
+  // every amount seen, biggest first — the picker uses these when the guess is weak
+  const seen=[];
+  lines.forEach(l=>amounts(l).forEach(v=>{if(!seen.includes(v))seen.push(v);}));
+  seen.sort((a,b)=>b-a);
+
+  let total=labelled.total??null, how=total!=null?"the total line":null;
+  // a printed subtotal + tip that sums to a candidate beats a bare "total"
+  if(labelled.subtotal!=null&&labelled.tip!=null){
+    const sum=Math.round((labelled.subtotal+labelled.tip+(labelled.tax||0))*100)/100;
+    if(seen.some(v=>Math.abs(v-sum)<0.02)){total=sum;how="subtotal plus tip";}
+    else if(total==null){total=sum;how="subtotal plus tip";}
   }
+  if(total==null&&seen.length){total=seen[0];how="the largest amount";}
+
+  // dates: numeric, and month-name forms receipts love
   let date=null;
-  const dm=text.match(/\b(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})\b/);
-  if(dm){
-    let[,a,b,y]=dm;y=+y<100?2000+ +y:+y;
-    let mo=+a,dd=+b;
-    if(mo>12&&dd<=12){const t=mo;mo=dd;dd=t;}
-    if(mo>=1&&mo<=12&&dd>=1&&dd<=31&&y>=2020&&y<=2099)
-      date=`${y}-${String(mo).padStart(2,"0")}-${String(dd).padStart(2,"0")}`;
+  const MON={jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
+  const mk=(y,m,d)=>{
+    y=+y<100?2000+ +y:+y;
+    if(m>=1&&m<=12&&d>=1&&d<=31&&y>=2015&&y<=2099)
+      return `${y}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+    return null;
+  };
+  const t=fix(text);
+  let m=t.match(/\b(\d{4})-(\d{1,2})-(\d{1,2})\b/);
+  if(m)date=mk(m[1],+m[2],+m[3]);
+  const MNAME="(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*";
+  if(!date&&(m=t.match(new RegExp("\\b(\\d{1,2})[ \\t.\\-]*"+MNAME+"\\.?[ \\t,.\\-]*(\\d{2,4})\\b","i")))){
+    date=mk(m[3],MON[m[2].slice(0,3).toLowerCase()],+m[1]);
   }
-  const merchant=(lines.find(l=>/^[A-Za-z][A-Za-z'&.\- ]{3,30}$/.test(l))||"").replace(/\s+/g," ").trim();
-  return {total,how,date,merchant};
+  if(!date&&(m=t.match(new RegExp("\\b"+MNAME+"\\.?[ \\t.\\-]*(\\d{1,2})[ \\t,.\\-]*(\\d{2,4})\\b","i")))){
+    date=mk(m[3],MON[m[1].slice(0,3).toLowerCase()],+m[2]);
+  }
+  if(!date&&(m=t.match(/\b(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})\b/))){
+    let a=+m[1],b=+m[2];
+    if(a>12&&b<=12){const x=a;a=b;b=x;}      // day-first receipt
+    date=mk(m[3],a,b);
+  }
+
+  // merchant: a wordy line near the top, not an address or a phone number
+  let merchant="";
+  for(const l of lines.slice(0,6)){
+    if(/\d{3}[-.\s]?\d{3,4}/.test(l))continue;
+    if(/\b(st|street|ave|avenue|rd|road|blvd|suite|ste|#)\b/i.test(l))continue;
+    if(/^[^A-Za-z]*$/.test(l))continue;
+    if(l.replace(/[^A-Za-z]/g,"").length<4)continue;
+    merchant=l.replace(/[^A-Za-z0-9'&.\- ]/g,"").trim().slice(0,32);
+    if(merchant)break;
+  }
+
+  // category hint from what the receipt is
+  let cat=null;
+  const low=text.toLowerCase();
+  if(/\b(restaurant|cafe|caf|bistro|grill|kitchen|server|table|dine)\b/.test(low))cat="\u{1F37D}\u{FE0F}";
+  else if(/\b(bar|pub|brewery|cocktail|wine|beer)\b/.test(low))cat="\u{1F378}";
+  else if(/\b(market|grocer|supermarket|mercado|foods)\b/.test(low))cat="\u{1F6D2}";
+  else if(/\b(fuel|petrol|gas|diesel|unleaded|gallons?|litres?)\b/.test(low))cat="⛽";
+  else if(/\b(marina|mooring|berth|dock|harbour|harbor)\b/.test(low))cat="⚓";
+  else if(/\b(hotel|resort|inn|lodging|room|nights?)\b/.test(low))cat="\u{1F3E8}";
+  else if(/\b(taxi|uber|lyft|cab|transfer|shuttle|fare)\b/.test(low))cat="\u{1F695}";
+
+  return {total,how,date,merchant,cat,seen:seen.slice(0,8),
+          tip:labelled.tip??null,tax:labelled.tax??null,subtotal:labelled.subtotal??null};
 }
+
 async function scanReceipt(file,ocr){
   const out=$("#scanOut");
   const myDraft=draft;
-  // paint the raw photo straight away so there is feedback before any processing
   const preview=URL.createObjectURL(file);
   myDraft.previewUrl=preview;paintReceipt();
   try{
@@ -1871,33 +2092,61 @@ async function scanReceipt(file,ocr){
     if(draft!==myDraft)return;
     myDraft.pendingImg=null;myDraft.previewUrl=null;
     URL.revokeObjectURL(preview);paintReceipt();
-    out.innerHTML=`<div class="warn" style="margin-bottom:14px"><b>Couldn't attach that photo.</b> ${esc(e.message||"Unknown error")} \u2014 try taking it again, or pick a JPEG from your library.</div>`;
+    out.innerHTML=`<div class="warn" style="margin-bottom:14px"><b>Couldn't attach that photo.</b> ${esc(e.message||"Unknown error")}</div>`;
     return;
   }
   if(!ocr){out.innerHTML=`<div class="warn" style="margin-bottom:14px">Receipt attached. Enter the amount yourself, or tap <b>Scan a receipt</b> to try reading it.</div>`;return;}
-  out.innerHTML=`<div class="warn" style="margin-bottom:14px">Reading the receipt\u2026 first scan downloads the reader, so give it a moment.</div>`;
+  out.innerHTML=`<div class="warn" style="margin-bottom:14px">Reading the receipt… the first scan downloads the reader, so give it a moment.</div>`;
   try{
     const T=await loadTesseract();
     const canvas=await shrink(file,1600);
     const w=await T.createWorker("eng");
     const {data:{text}}=await w.recognize(canvas);
     await w.terminate();
+    if(draft!==myDraft)return;
     const r=parseReceipt(text);
-    if(r.total==null){
-      out.innerHTML=`<div class="warn" style="margin-bottom:14px"><b>Couldn't read an amount.</b> Type it in \u2014 receipts print badly and this misses often.</div>`;
-      return;
+    myDraft.scan=r;
+    if(r.total!=null){
+      $("#fAmt").value=r.total.toFixed(2);
+      if(!myDraft.paidTouched)evenPay();
+      paintConv();sumNote();paintPaid();
     }
-    $("#fAmt").value=r.total.toFixed(2);
     if(r.date)$("#fDate").value=r.date;
     if(r.merchant&&!$("#fDesc").value)$("#fDesc").value=r.merchant;
-    if(!draft.paidTouched)evenPay();
-    paintConv();sumNote();paintPaid();
-    out.innerHTML=`<div class="warn" style="margin-bottom:14px">
-      <b>Check this before saving.</b> Read ${sym(draft.cur)}${r.total.toFixed(2)} from the ${r.how}${r.date?`, dated ${r.date}`:""}. OCR on receipts is unreliable.</div>`;
+    if(r.cat){myDraft.cat=r.cat;paintSheet();}
+    paintScanResult(r);
   }catch(e){
-    out.innerHTML=`<div class="warn" style="margin-bottom:14px">Couldn't load the reader \u2014 it needs a connection the first time. Type the amount in instead.</div>`;
+    out.innerHTML=`<div class="warn" style="margin-bottom:14px">Couldn't load the reader — it needs a connection the first time. Type the amount in instead.</div>`;
   }
 }
+function paintScanResult(r){
+  const out=$("#scanOut");
+  if(!r){out.innerHTML="";return;}
+  const parts=[];
+  if(r.subtotal!=null)parts.push(`subtotal ${sym(draft.cur)}${r.subtotal.toFixed(2)}`);
+  if(r.tip!=null)parts.push(`tip ${sym(draft.cur)}${r.tip.toFixed(2)}`);
+  if(r.tax!=null)parts.push(`tax ${sym(draft.cur)}${r.tax.toFixed(2)}`);
+  const chips=(r.seen||[]).filter(v=>v!==r.total).slice(0,5);
+  out.innerHTML=`<div class="warn" style="margin-bottom:14px">
+    ${r.total!=null
+      ? `<b>Check this.</b> Read ${sym(draft.cur)}${r.total.toFixed(2)} from ${r.how}${r.date?`, dated ${r.date}`:""}.`
+      : `<b>No amount found.</b> Type it in, or pick one below.`}
+    ${parts.length?`<div style="margin-top:6px">Also read: ${parts.join(" · ")}</div>`:""}
+    ${chips.length?`<div style="margin-top:9px">Wrong one? <span id="altAmts" style="display:inline-flex;flex-wrap:wrap;gap:6px;vertical-align:middle">
+        ${chips.map(v=>`<button class="chip" data-alt="${v}" style="padding:6px 11px;min-height:0;font-size:13px">${sym(draft.cur)}${v.toFixed(2)}</button>`).join("")}
+      </span></div>`:""}
+    ${r.tip!=null&&r.subtotal!=null?`<div class="note" style="margin:8px 0 0">A handwritten tip won't be read — if you wrote one in, add it to the amount yourself.</div>`:""}
+  </div>`;
+  const alt=$("#altAmts");
+  if(alt)alt.onclick=e=>{
+    const b=e.target.closest("[data-alt]");if(!b)return;
+    $("#fAmt").value=parseFloat(b.dataset.alt).toFixed(2);
+    if(!draft.paidTouched)evenPay();
+    paintConv();sumNote();paintPaid();
+    toast("Amount updated");
+  };
+}
+
 
 /* ---------------- live exchange rates (ECB via Frankfurter, no key) ----------------
    A rate is looked up once per currency pair per date, then frozen onto the
