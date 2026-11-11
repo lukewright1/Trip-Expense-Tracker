@@ -257,6 +257,9 @@ nav button.on .ic{filter:drop-shadow(0 0 8px rgba(242,168,29,.8))}
   z-index:200;opacity:0;pointer-events:none;transition:opacity .2s;max-width:88vw;text-align:center;
 }
 #toast.on{opacity:1}
+#toast.act{pointer-events:auto;padding:10px 12px 10px 18px;display:flex;align-items:center;gap:14px}
+#toast.act button{color:var(--amber);font-weight:700;font-size:14px;padding:8px 14px;
+  border-radius:9px;background:rgba(242,168,29,.14);white-space:nowrap}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--muted);display:inline-block;margin-right:6px}
 .dot.live{background:var(--adriatic)}
 @media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}}
@@ -850,7 +853,11 @@ function askDone(v){$("#ask").classList.remove("on");const r=askRes;askRes=null;
 $("#askYes").onclick=()=>askDone(true);
 $("#askNo").onclick=()=>askDone(false);
 $("#ask").querySelector(".scrim").onclick=()=>askDone(false);
-function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("on");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("on"),2200);}
+function toast(m){
+  const t=$("#toast");
+  t.classList.remove("act");t.textContent=m;t.classList.add("on");
+  clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("on"),2200);
+}
 
 /* ---------------- tabs ---------------- */
 document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{
@@ -1135,14 +1142,22 @@ $("#logBody").onclick=async e=>{
 };
 function undoToast(it){
   const t=$("#toast");
-  t.innerHTML=`Deleted \u00b7 <button id="undoBtn" style="color:var(--amber);font-weight:700;text-decoration:underline">Undo</button>`;
-  t.classList.add("on");clearTimeout(t._t);
-  t._t=setTimeout(()=>t.classList.remove("on"),7000);
-  $("#undoBtn").onclick=()=>{
-    S.items[it.id]={...it,del:false,upd:now()};save();
-    t.classList.remove("on");toast("Restored");
+  t.innerHTML=`<span>Deleted</span><button type="button" id="undoBtn">Undo</button>`;
+  t.classList.add("on","act");
+  clearTimeout(t._t);
+  t._t=setTimeout(()=>{t.classList.remove("on","act");},9000);
+  const go=ev=>{
+    ev.preventDefault();ev.stopPropagation();
+    clearTimeout(t._t);
+    S.items[it.id]={...it,del:false,upd:now()};
+    save();
+    toast("Restored");
   };
+  const b=$("#undoBtn");
+  b.onclick=go;
+  b.addEventListener("touchend",go,{passive:false});
 }
+
 
 /* record a settlement payment */
 function pickDisp(e){
@@ -1384,7 +1399,14 @@ function renderSync(){
    The trip passphrase never leaves this device. Whatever host we sync through
    stores ciphertext only, so real names and amounts are unreadable to them. */
 const te=new TextEncoder(), td=new TextDecoder();
-const b64=b=>btoa(String.fromCharCode(...new Uint8Array(b)));
+/* chunked — spreading a big Uint8Array into fromCharCode blows the argument
+   limit and throws "Maximum call stack size exceeded" on anything photo-sized */
+function b64(buf){
+  const a=new Uint8Array(buf);
+  let out="";
+  for(let i=0;i<a.length;i+=0x8000)out+=String.fromCharCode.apply(null,a.subarray(i,i+0x8000));
+  return btoa(out);
+}
 const unb64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
 async function keyFrom(pass,salt){
   const base=await crypto.subtle.importKey("raw",te.encode(pass),"PBKDF2",false,["deriveKey"]);
