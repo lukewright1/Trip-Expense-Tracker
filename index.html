@@ -1648,6 +1648,11 @@ async function getReceipt(itemId){
     return box.d;
   }catch(e){return null;}
 }
+async function receiptOnHost(itemId){
+  const u=receiptUrl(itemId);if(!u)return false;
+  try{const r=await fetch(u+"?shallow=true");if(!r.ok)return false;
+    const j=await r.json();return j!==null&&j!==undefined;}catch(e){return false;}
+}
 async function dropReceipt(itemId){
   const k=receiptKey(itemId);delete imgMem[k];await idbDel(k);
   const u=receiptUrl(itemId);
@@ -1882,12 +1887,31 @@ function openDetail(id){
       <button class="btn ghost" data-detail-share="${it.id}">Share this</button>
       <button class="btn teal" data-detail-edit="${it.id}">Edit</button>
     </div>`);
-  if(it.receipt)getReceipt(it.id).then(d=>{
+  if(it.receipt)getReceipt(it.id).then(async d=>{
     const box=$("#rcpt");if(!box)return;
-    box.innerHTML=d
-      ?`<a href="${d}" download="receipt-${it.id}.jpg"><img src="${d}" style="width:100%;border-radius:10px;display:block"></a>
-        <div class="note" style="margin:8px 0 0">Tap to save a copy.</div>`
-      :`<div class="note" style="margin:0">Not on this phone yet \u2014 it'll appear once sync pulls it down.</div>`;
+    if(d){
+      const shared=sync&&sync.host==="fb";
+      let state=shared?"checking\u2026":"on this phone only \u2014 sync is off for this trip";
+      box.innerHTML=`<a href="${d}" download="receipt-${it.id}.jpg"><img src="${d}" style="width:100%;border-radius:10px;display:block"></a>
+        <div class="note" id="rcptState" style="margin:8px 0 0">${state}</div>`;
+      if(shared){
+        const ok=await receiptOnHost(it.id);
+        const st=$("#rcptState");if(!st)return;
+        st.innerHTML=ok
+          ?"Shared with the group \u00b7 tap the image to save a copy"
+          :`Not uploaded yet. <button id="rcptRetry" style="color:var(--adriatic-dk);font-weight:700;text-decoration:underline">Upload now</button>`;
+        const rb=$("#rcptRetry");
+        if(rb)rb.onclick=async()=>{
+          rb.textContent="Uploading\u2026";
+          const r=await saveReceipt(it.id,d);
+          $("#rcptState").textContent=r?"Shared with the group":"Upload failed \u2014 check the Firebase rules include receipts";
+        };
+      }
+      return;
+    }
+    box.innerHTML=(sync&&sync.host==="fb")
+      ?`<div class="note" style="margin:0">Whoever added this hasn't uploaded it yet, or it's still syncing. Pull down again in a moment.</div>`
+      :`<div class="note" style="margin:0">Added on another phone. Turn on sync under <b>Trip</b> to see shared receipts.</div>`;
   });
   $("#sheet2Body").onclick=e=>{
     const ed=e.target.closest("[data-detail-edit]"),sh=e.target.closest("[data-detail-share]");
