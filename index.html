@@ -357,7 +357,7 @@ nav button.on .ic{filter:drop-shadow(0 0 8px rgba(242,168,29,.8))}
 
     <div class="eyebrow">Sync across phones</div>
     <div class="card pad">
-      <div id="syncState" class="row" style="padding-top:0"><span><span class="dot" id="syncDot"></span><span id="syncLabel">Not syncing — this phone only</span></span></div>
+      <div id="syncState" class="row" style="padding-top:0"><span><span class="dot" id="syncDot"></span><span id="syncLabel">Not syncing — this phone only</span></span><span class="note" id="syncWhen" style="margin:0"></span></div>
       <div id="syncOff">
         <p class="note" style="margin-bottom:12px">Sync uses a free JSONBin.io bin. One person sets it up and shares the trip code; everyone else pastes it in.</p>
         <div class="btnrow">
@@ -562,6 +562,7 @@ function tripSpend(t){
   return Object.values(t.items||{}).filter(i=>!i.del&&i.kind!=="pay").reduce((a,i)=>a+i.cents,0);
 }
 function switchTrip(id){
+  stopStream();
   if(!store.trips[id])return;
   persist();
   store.active=id;S=store.trips[id];
@@ -569,7 +570,7 @@ function switchTrip(id){
   localStorage.setItem(LSTORE,JSON.stringify(store));
   localStorage.setItem(LS,JSON.stringify(S));
   filter="all";render();
-  if(sync)pull(true);
+  if(sync){pull(true);startStream();}
   toast(S.name);
 }
 
@@ -1346,7 +1347,7 @@ $("#peopleBody").onclick=async e=>{
 };
 $("#wipe").onclick=async()=>{
   if(!await ask("Erase this trip?","Every expense and person on this phone. This cannot be undone.","Erase everything"))return;
-  const keep=S.tripId;S=blank();S.tripId=keep;S.name="Trip";store.trips[keep]=S;sync=null;saveSync();save();toast("Erased");
+  const keep=S.tripId;S=blank();S.tripId=keep;S.name="Trip";store.trips[keep]=S;sync=null;saveSync();stopStream();save();toast("Erased");
 };
 $("#exportJson").onclick=()=>{
   const a=document.createElement("a");
@@ -1388,6 +1389,7 @@ function renderSync(){
   $("#syncOff").style.display=on?"none":"block";
   $("#syncDot").className="dot"+(on?" live":"");
   if(on&&$("#shareKeyIn"))$("#shareKeyIn").value=sync.shareKey||"";
+  const w=$("#syncWhen");if(w)w.textContent=syncAgo();
   $("#syncLabel").textContent=on
     ?`${sync.host==="fb"?"Firebase":"JSONBin"} · ${sync.pass?"encrypted end to end":"NOT encrypted"}`
     :"Not syncing — this phone only";
@@ -1467,7 +1469,43 @@ async function push(){
     await hostPut(body);
   }catch(e){}
 }
-function queuePush(){if(!sync)return;clearTimeout(pushTimer);pushTimer=setTimeout(async()=>{await pull(true);await push();},900);}
+/* Realtime Database speaks server-sent events on the same .json URL, so the app
+   hears changes as they happen instead of waiting for the next focus event. */
+let stream=null, applying=false;
+function stopStream(){if(stream){try{stream.close();}catch(e){}stream=null;}}
+function startStream(){
+  stopStream();
+  if(!sync||sync.host!=="fb"||!window.EventSource)return;
+  const url=`${sync.db.replace(/\/+$/,"")}/trips/${sync.path}.json`;
+  try{stream=new EventSource(url);}catch(e){return;}
+  const take=async ev=>{
+    if(!ev.data||ev.data==="null")return;
+    let msg;try{msg=JSON.parse(ev.data);}catch(e){return;}
+    if(!msg||msg.data==null)return;
+    if(msg.path!==undefined&&msg.path!=="/")return;   // partial patch: fall back to a pull
+    let rec=msg.data;
+    if(rec&&rec.enc===1){
+      if(!sync.pass)return;
+      try{rec=await unseal(rec,sync.pass,sync.path);}catch(e){return;}
+    }
+    if(!rec||!rec.people)return;
+    applying=true;
+    S=merge(S,rec);persist();render();
+    applying=false;
+    markSynced();
+  };
+  stream.addEventListener("put",take);
+  stream.addEventListener("patch",()=>{if(!applying)pull(true);});
+  stream.onerror=()=>{};   // EventSource reconnects on its own
+}
+let lastSync=0;
+function markSynced(){lastSync=Date.now();const el=$("#syncWhen");if(el)el.textContent=syncAgo();}
+function syncAgo(){
+  if(!lastSync)return "";
+  const s=Math.round((Date.now()-lastSync)/1000);
+  return s<10?"just now":s<60?`${s}s ago`:`${Math.round(s/60)}m ago`;
+}
+function queuePush(){if(!sync)return;clearTimeout(pushTimer);pushTimer=setTimeout(async()=>{await pull(true);await push();markSynced();},900);}
 const enc=o=>btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/=+$/,"");
 const dec=s=>JSON.parse(decodeURIComponent(escape(atob(s))));
 
@@ -1496,7 +1534,7 @@ $("#openFb").onclick=()=>{
     sync={host:"fb",db,path,pass};
     try{
       await hostPut(await seal(S,pass,path));
-      saveSync();$("#sheet2").classList.remove("on");render();toast("Sync on — share the code");
+      saveSync();startStream();$("#sheet2").classList.remove("on");render();toast("Sync on — share the code");
     }catch(e){sync=null;$("#fbGo").textContent="Turn on sync";toast("Couldn't write — check the URL and rules");}
   };
 };
@@ -1543,7 +1581,7 @@ $("#openJoin").onclick=()=>{
       const raw=$("#jCode").value.trim();
       const o=dec((raw.match(/[#&]join=([A-Za-z0-9+/=_-]+)/)||[,raw])[1]);
       if(!(o.host==="fb"?(o.db&&o.path):(o.bin&&o.key)))throw 0;
-      sync=o;saveSync();
+      sync=o;saveSync();startStream();
       await pull(true);$("#sheet2").classList.remove("on");render();toast("Joined — everything's synced");
     }catch(e){toast("That code didn't work");}
   };
@@ -1593,7 +1631,7 @@ $("#saveShareKey").onclick=()=>{
 };
 $("#stopSync").onclick=async()=>{
   if(!await ask("Stop syncing?","This phone keeps everything it already has, but changes stop travelling.","Stop syncing"))return;
-  sync=null;saveSync();render();
+  sync=null;saveSync();stopStream();render();
 };
 
 /* ---------------- Venmo QR codes ---------------- */
@@ -2118,13 +2156,15 @@ async function joinFromLink(){
   // land it in a fresh trip so nothing local is overwritten
   const t=blank();t.name="Shared trip";
   store.trips[t.tripId]=t;store.active=t.tripId;S=t;
-  sync=o;saveSync();persist();
+  sync=o;saveSync();startStream();persist();
   await pull(false);render();
   document.querySelector('nav button[data-tab="log"]').click();
   return true;
 }
 render();
+startStream();
 joinFromLink();
+setInterval(()=>{const el=$("#syncWhen");if(el)el.textContent=syncAgo();},15000);
 if(sync)pull(true);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden&&sync)pull(true);});
 window.addEventListener("focus",()=>{if(sync)pull(true);});
