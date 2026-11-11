@@ -372,6 +372,8 @@ nav button.on .ic{filter:drop-shadow(0 0 8px rgba(242,168,29,.8))}
           <input id="shareKeyIn" placeholder="Access Key with Read + Update" autocomplete="off"></label>
         <button class="btn ghost sm" style="width:100%" id="saveShareKey">Use this key in the trip code</button>
         <p class="note">Without one, the trip code hands out your master key, which can delete every bin on your account.</p>
+        <button class="btn ghost sm" style="width:100%;margin-top:9px" id="testRec">Test receipt storage</button>
+        <div class="note" id="testOut" style="margin:8px 0 0"></div>
         <button class="btn danger sm" style="width:100%;margin-top:9px" id="stopSync">Stop syncing</button>
       </div>
     </div>
@@ -1059,7 +1061,7 @@ $("#saveItem").onclick=()=>{
   draft.receipt=!!img;
   S.items[id]=draft;closeSheet();save();toast("Saved");
   if(img)saveReceipt(id,img).then(r=>{
-    if(r===false)toast("Receipt saved on this phone, but not shared \u2014 check sync");
+    if(r===false)toast(`Receipt saved here but not shared \u00b7 ${lastReceiptError}`);
   });
   else if(drop)dropReceipt(id);
 };
@@ -1543,6 +1545,25 @@ $("#shareCode").onclick=async()=>{
   }
 };
 $("#pullNow").onclick=()=>pull(false);
+$("#testRec").onclick=async()=>{
+  const out=$("#testOut");
+  if(!sync||sync.host!=="fb")return out.textContent="Firebase sync isn't on for this trip.";
+  out.textContent="Testing\u2026";
+  const u=`${sync.db.replace(/\/+$/,"")}/receipts/${sync.path}/_test.json`;
+  try{
+    const w=await fetch(u,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({t:Date.now()})});
+    if(!w.ok){
+      let d="";try{const j=await w.json();d=j&&j.error?j.error:"";}catch(e){}
+      out.innerHTML=`<b>Write refused \u00b7 HTTP ${w.status}${d?" \u2014 "+esc(d):""}</b><br>Add a <b>receipts</b> branch to your database rules and publish it.`;
+      return;
+    }
+    const rd=await fetch(u);
+    const ok=rd.ok&&(await rd.json())!==null;
+    await fetch(u,{method:"DELETE"});
+    out.innerHTML=ok?"<b>Receipt storage works.</b> Writes and reads both succeeded."
+      :"<b>Wrote but couldn't read back.</b> Check the read rule on receipts.";
+  }catch(e){out.innerHTML=`<b>Couldn't reach the database.</b> ${esc(e.message||"")}`;}
+};
 $("#saveShareKey").onclick=()=>{
   const v=$("#shareKeyIn").value.trim();
   sync.shareKey=v||undefined;saveSync();
@@ -1621,6 +1642,7 @@ function receiptUrl(id){
   if(!sync||sync.host!=="fb")return null;
   return `${sync.db.replace(/\/+$/,"")}/receipts/${sync.path}/${id}.json`;
 }
+let lastReceiptError="";
 async function saveReceipt(itemId,dataUrl){
   await idbPut(receiptKey(itemId),dataUrl);
   imgMem[receiptKey(itemId)]=dataUrl;
@@ -1628,9 +1650,18 @@ async function saveReceipt(itemId,dataUrl){
   if(!u)return null;              // no sync on this trip — local only, by design
   try{
     const body=sync.pass?await seal({d:dataUrl},sync.pass,sync.path):{d:dataUrl};
-    const r=await fetch(u,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
-    return r.ok?true:false;
-  }catch(e){return false;}
+    const payload=JSON.stringify(body);
+    const kb=Math.round(payload.length/1024);
+    const r=await fetch(u,{method:"PUT",headers:{"Content-Type":"application/json"},body:payload});
+    if(r.ok){lastReceiptError="";return true;}
+    let detail="";
+    try{const j=await r.json();detail=j&&j.error?j.error:"";}catch(e){}
+    lastReceiptError=`HTTP ${r.status}${detail?" \u2014 "+detail:""} (${kb} KB)`;
+    return false;
+  }catch(e){
+    lastReceiptError=`Network: ${e.message||"request blocked"}`;
+    return false;
+  }
 }
 async function getReceipt(itemId){
   const k=receiptKey(itemId);
@@ -1771,7 +1802,7 @@ async function scanReceipt(file,ocr){
   const preview=URL.createObjectURL(file);
   myDraft.previewUrl=preview;paintReceipt();
   try{
-    const d=await shrinkPlain(file,1400,.62);
+    const d=await shrinkPlain(file,1100,.55);
     if(draft!==myDraft)return;
     myDraft.pendingImg=d;myDraft.previewUrl=null;
     URL.revokeObjectURL(preview);
@@ -1904,7 +1935,9 @@ function openDetail(id){
         if(rb)rb.onclick=async()=>{
           rb.textContent="Uploading\u2026";
           const r=await saveReceipt(it.id,d);
-          $("#rcptState").textContent=r?"Shared with the group":"Upload failed \u2014 check the Firebase rules include receipts";
+          $("#rcptState").innerHTML=r
+            ?"Shared with the group"
+            :`Upload failed \u00b7 <b>${esc(lastReceiptError||"unknown")}</b>`;
         };
       }
       return;
