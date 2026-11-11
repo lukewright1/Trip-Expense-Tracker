@@ -29,7 +29,12 @@
   --coral:#DB4F45;
   --muted:#5C7075;
   --radius:14px;
-  --tab-h:60px;
+  --tab-h:68px;
+  --line-soft:#E2E8E9;
+  --e1:0 1px 2px rgba(11,32,39,.05), 0 1px 1px rgba(11,32,39,.03);
+  --e2:0 2px 4px rgba(11,32,39,.05), 0 6px 14px -6px rgba(11,32,39,.10);
+  --e3:0 8px 24px -8px rgba(11,32,39,.22), 0 2px 6px rgba(11,32,39,.07);
+  --e-up:0 -6px 20px -8px rgba(11,32,39,.16);
   --font:"Century Gothic","Avenir Next","Avenir","Poppins","Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -48,47 +53,54 @@ h1,h2,h3{font-family:var(--font);font-weight:700;letter-spacing:-.015em;margin:0
   font-feature-settings:"tnum" 1;letter-spacing:-.01em}
 button,input,select,textarea{font:inherit;color:inherit}
 button{border:0;background:none;cursor:pointer}
-input,select{
-  width:100%;padding:13px 14px;border:1.5px solid var(--line);border-radius:11px;
+input,select,textarea{
+  width:100%;padding:13px 14px;border:1px solid var(--line);border-radius:11px;
   background:var(--card);font-size:16px;appearance:none;
+  transition:border-color .14s, box-shadow .14s;
 }
-input:focus,select:focus,button:focus-visible{outline:2.5px solid var(--amber);outline-offset:1px}
+input:focus,select:focus,textarea:focus{border-color:var(--adriatic);box-shadow:0 0 0 3px rgba(18,140,140,.14)}
+select{background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);
+  background-position:calc(100% - 18px) 50%,calc(100% - 13px) 50%;
+  background-size:5px 5px,5px 5px;background-repeat:no-repeat;padding-right:38px}
+button:focus-visible,a:focus-visible{outline:2.5px solid var(--amber);outline-offset:2px}
 label.f{display:block;margin-bottom:14px}
-label.f > span{display:block;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:6px}
+label.f > span{display:block;font-size:12.5px;font-weight:600;letter-spacing:.01em;color:var(--muted);margin-bottom:6px}
 
 /* ---------- header ---------- */
 header{
   background:var(--ink);color:#fff;
-  padding:calc(env(safe-area-inset-top) + 14px) 18px 16px;
+  padding:calc(env(safe-area-inset-top) + 14px) 18px 15px;
   position:relative;overflow:hidden;
 }
 header::after{
-  content:"";position:absolute;left:0;right:0;bottom:0;height:8px;
-  background:repeating-linear-gradient(90deg,var(--adriatic) 0 14px,transparent 14px 28px);
-  opacity:.55;
+  content:"";position:absolute;left:0;right:0;bottom:0;height:3px;
+  background:linear-gradient(90deg,var(--adriatic) 0%,var(--adriatic) 55%,var(--amber) 100%);
+  opacity:.9;
 }
 .hrow{display:flex;justify-content:space-between;align-items:flex-end;gap:12px}
 #tripName{font-size:23px;line-height:1.1}
-.hsub{font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:#8FB3B8;margin-top:4px}
+.hsub{font-size:12px;letter-spacing:.01em;color:#8FB3B8;margin-top:5px}
 .htot{text-align:right;flex:none}
-.htot .n{font-size:22px;font-weight:700;color:var(--amber)}
-.htot .l{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#8FB3B8}
+.htot .n{font-size:23px;font-weight:700;color:var(--amber);line-height:1.05}
+.htot .l{font-size:10px;letter-spacing:.02em;color:#8FB3B8;margin-top:1px}
 
 /* ---------- layout ---------- */
 main{padding:16px 14px 24px;max-width:640px;margin:0 auto}
 .screen{display:none}.screen.on{display:block}
-.card{background:var(--card);border:1.5px solid var(--line);border-radius:var(--radius);margin-bottom:12px}
+.card{background:var(--card);border:1px solid var(--line-soft);border-radius:var(--radius);
+  margin-bottom:12px;box-shadow:var(--e1)}
 .pad{padding:16px}
-.eyebrow{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin:22px 0 9px}
+.eyebrow{font-size:11.5px;font-weight:600;letter-spacing:.02em;color:var(--muted);margin:24px 2px 9px}
 .eyebrow:first-child{margin-top:2px}
 .empty{text-align:center;padding:44px 22px;color:var(--muted)}
 .empty h3{font-size:18px;margin-bottom:6px;color:var(--ink)}
 
 /* ---------- expense rows ---------- */
-.day{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:20px 2px 8px}
-.item{display:flex;gap:12px;align-items:center;width:100%;text-align:left;padding:12px 14px;border-bottom:1px solid var(--line)}
+.day{font-size:11.5px;font-weight:600;letter-spacing:.02em;color:var(--muted);margin:22px 2px 9px}
+.item{display:flex;gap:12px;align-items:center;width:100%;text-align:left;padding:13px 14px;border-bottom:1px solid var(--line-soft)}
 .item:last-child{border-bottom:0}
-.cat{width:40px;height:40px;flex:none;border-radius:11px;background:var(--paper);display:grid;place-items:center;font-size:19px}
+.cat{width:40px;height:40px;flex:none;border-radius:12px;background:var(--paper);
+  display:grid;place-items:center;font-size:19px;border:1px solid var(--line-soft)}
 .item .mid{flex:1;min-width:0}
 .item .t{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .item .s{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -102,7 +114,7 @@ main{padding:16px 14px 24px;max-width:640px;margin:0 auto}
 .av.lg{width:52px;height:52px;font-size:17px}
 .av.ring{box-shadow:0 0 0 2px var(--card),0 0 0 3.5px var(--adriatic)}
 /* people editor — avatar column, stacked fields, nothing competing for one line */
-.prow{display:flex;gap:12px;padding:14px;border-bottom:1px solid var(--line)}
+.prow{display:flex;gap:12px;padding:15px 14px;border-bottom:1px solid var(--line-soft)}
 .prow:last-child{border-bottom:0}
 .pface{flex:none;position:relative;padding:0;line-height:0}
 .pplus{position:absolute;right:-2px;bottom:-2px;width:20px;height:20px;border-radius:50%;
@@ -113,11 +125,11 @@ main{padding:16px 14px 24px;max-width:640px;margin:0 auto}
 .pmeta{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;align-items:flex-end}
 .pfield{display:block;flex:none}
 .pfield.grow{flex:1 1 140px;min-width:0}
-.pfield > span{display:block;font-size:10px;font-weight:600;text-transform:uppercase;
-  letter-spacing:.08em;color:var(--muted);margin-bottom:4px}
+.pfield > span{display:block;font-size:11px;font-weight:600;letter-spacing:.01em;
+  color:var(--muted);margin-bottom:4px}
 .pfield input{padding:9px 10px;font-size:15px}
 .pfield:not(.grow) input{width:64px;text-align:center}
-.psm{align-self:flex-end;padding:10px 12px;border:1.5px solid var(--line);border-radius:11px;
+.psm{align-self:flex-end;padding:10px 12px;border:1px solid var(--line);border-radius:11px;
   background:var(--card);font-size:13px;font-weight:600;white-space:nowrap}
 .psm.del{color:var(--coral);border-color:var(--coral)}
 /* cropper — one component, used for headshots and for framing a receipt */
@@ -142,7 +154,7 @@ main{padding:16px 14px 24px;max-width:640px;margin:0 auto}
 .avstack{display:flex;align-items:center}
 .avstack .av:not(:first-child){margin-left:-11px;box-shadow:0 0 0 2px var(--card)}
 .pos{color:var(--adriatic-dk)}.neg{color:var(--coral)}
-.swipe{position:relative;overflow:hidden;border-bottom:1px solid var(--line)}
+.swipe{position:relative;overflow:hidden;border-bottom:1px solid var(--line-soft)}
 .swipe:last-child{border-bottom:0}
 .swipe .acts{position:absolute;inset:0 0 0 auto;display:flex;align-items:stretch}
 .swipe .acts button{width:78px;color:#fff;font-weight:700;font-size:14px}
@@ -154,20 +166,21 @@ main{padding:16px 14px 24px;max-width:640px;margin:0 auto}
 .swipe.dragging .item{transition:none}
 
 /* ---------- waterline balance bars ---------- */
-.bal{padding:14px 14px 10px;border-bottom:1px solid var(--line)}
+.bal{padding:15px 14px 12px;border-bottom:1px solid var(--line-soft)}
 .bal:last-child{border-bottom:0}
 .bal .top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
 .bal .nm{font-weight:600}
 .bal .v{font-weight:600;font-size:15px}
-.track{position:relative;height:20px;background:var(--paper);border-radius:5px;overflow:hidden}
+.track{position:relative;height:18px;background:var(--paper);border-radius:6px;overflow:hidden;
+  border:1px solid var(--line-soft)}
 .track::before{content:"";position:absolute;left:50%;top:0;bottom:0;width:1.5px;background:var(--line);z-index:2}
-.fill{position:absolute;top:3px;bottom:3px;border-radius:3px}
+.fill{position:absolute;top:3px;bottom:3px;border-radius:4px;transition:width .3s cubic-bezier(.2,.8,.3,1)}
 .fill.p{left:50%;background:var(--adriatic)}
 .fill.n{right:50%;background:var(--coral)}
-.legend{display:flex;justify-content:space-between;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:8px 4px 0}
+.legend{display:flex;justify-content:space-between;font-size:11px;letter-spacing:.01em;color:var(--muted);padding:9px 4px 0}
 
 /* ---------- settle ---------- */
-.pay{display:flex;align-items:center;gap:12px;padding:15px 14px;border-bottom:1px solid var(--line)}
+.pay{display:flex;align-items:center;gap:12px;padding:15px 14px;border-bottom:1px solid var(--line-soft)}
 .pay:last-child{border-bottom:0}
 .pay .flow{flex:1;min-width:0}
 .pay .flow .who{font-weight:600;font-size:15px}
@@ -177,13 +190,15 @@ main{padding:16px 14px 24px;max-width:640px;margin:0 auto}
 /* ---------- buttons ---------- */
 .btn{
   display:block;width:100%;padding:15px;border-radius:12px;font-weight:700;font-size:16px;
-  background:var(--ink);color:#fff;text-align:center;
+  background:var(--ink);color:#fff;text-align:center;box-shadow:var(--e1);
+  transition:transform .12s cubic-bezier(.2,.8,.3,1), box-shadow .12s, filter .12s;
 }
+.btn:active{transform:scale(.978);filter:brightness(.94);box-shadow:none}
 .btn.teal{background:var(--adriatic)}
-.btn.ghost{background:transparent;border:1.5px solid var(--line);color:var(--ink)}
-.btn.danger{background:transparent;border:1.5px solid var(--coral);color:var(--coral)}
+.btn.ghost{background:var(--card);border:1px solid var(--line);color:var(--ink);box-shadow:none}
+.btn.danger{background:var(--card);border:1px solid var(--coral);color:var(--coral);box-shadow:none}
 .btn.sm{padding:11px 14px;font-size:14px;width:auto;display:inline-block}
-.btn:active{transform:scale(.985)}
+
 .btnrow{display:flex;gap:9px;margin-top:12px}
 .btnrow > *{flex:1;width:auto}
 
@@ -191,39 +206,45 @@ main{padding:16px 14px 24px;max-width:640px;margin:0 auto}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
 .chip{
   flex:0 0 auto;white-space:nowrap;
-  padding:10px 14px;border-radius:999px;border:1.5px solid var(--line);
+  padding:10px 14px;border-radius:999px;border:1px solid var(--line);
   background:var(--card);font-size:14px;font-weight:600;min-height:42px;
   display:inline-flex;align-items:center;gap:6px;line-height:1;
+  transition:background .14s, color .14s, border-color .14s, transform .12s;
 }
-.chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.chip:active{transform:scale(.96)}
+.chip.on{background:var(--ink);color:#fff;border-color:var(--ink);box-shadow:var(--e1)}
 .chip .av{margin-left:-6px}
 .chip.cat{padding:9px 12px}
 .chip.cat.on{background:var(--adriatic);border-color:var(--adriatic)}
 .catgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
 .tile{
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
-  padding:10px 2px;border:1.5px solid var(--line);border-radius:12px;background:var(--card);min-height:68px;
+  padding:10px 2px;border:1px solid var(--line-soft);border-radius:12px;background:var(--card);
+  min-height:68px;box-shadow:var(--e1);transition:transform .12s,background .14s,border-color .14s;
 }
 .tile .e{font-size:22px;line-height:1}
 .tile .l{font-size:10px;font-weight:700;color:var(--muted);text-align:center;line-height:1.1}
-.tile.on{background:var(--adriatic);border-color:var(--adriatic)}
+.tile.on{background:var(--adriatic);border-color:var(--adriatic);box-shadow:var(--e2)}
+.tile:active{transform:scale(.95)}
 .tile.on .l{color:#fff}
 .filterbar{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 4px;scrollbar-width:none}
 .filterbar::-webkit-scrollbar{display:none}
-.barrow{padding:13px 14px;border-bottom:1px solid var(--line)}
+.barrow{padding:14px;border-bottom:1px solid var(--line-soft)}
 .barrow:last-child{border-bottom:0}
 .bartop{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:7px;font-size:14px;font-weight:600}
 .bartop .pct{font-size:12px;color:var(--muted);font-weight:500}
-.bartrack{height:8px;background:var(--paper);border-radius:4px;overflow:hidden}
-.barfill{height:100%;background:var(--adriatic);border-radius:4px}
+.bartrack{height:7px;background:var(--paper);border-radius:4px;overflow:hidden}
+.barfill{height:100%;background:linear-gradient(90deg,var(--adriatic-dk),var(--adriatic));
+  border-radius:4px;transition:width .3s cubic-bezier(.2,.8,.3,1)}
 .shareBtn{
   width:44px;height:44px;border-radius:50%;flex:none;
-  background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.24);
+  background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);
   color:#fff;font-size:18px;display:grid;place-items:center;
 }
-.seg{display:flex;border:1.5px solid var(--line);border-radius:11px;overflow:hidden;background:var(--card)}
+.seg{display:flex;border:1px solid var(--line);border-radius:11px;overflow:hidden;background:var(--paper);padding:3px;gap:3px}
+.seg button{border-radius:8px;transition:background .14s,color .14s}
 .seg button{flex:1;padding:11px 6px;font-size:14px;font-weight:600;color:var(--muted)}
-.seg button.on{background:var(--ink);color:#fff}
+.seg button.on{background:var(--card);color:var(--ink);box-shadow:var(--e1);font-weight:700}
 
 /* ---------- add bar + tabs ---------- */
 .addbar{
@@ -231,16 +252,26 @@ main{padding:16px 14px 24px;max-width:640px;margin:0 auto}
   padding:10px 14px;z-index:40;pointer-events:none;
   background:linear-gradient(to top,var(--paper) 55%,transparent);
 }
-.addbar button{pointer-events:auto;max-width:612px;margin:0 auto;box-shadow:0 6px 20px rgba(11,32,39,.24)}
+.addbar button{pointer-events:auto;max-width:612px;margin:0 auto;box-shadow:var(--e3)}
 nav{
   position:fixed;left:0;right:0;bottom:0;height:calc(var(--tab-h) + env(safe-area-inset-bottom));
   padding-bottom:env(safe-area-inset-bottom);
-  background:var(--ink);display:flex;z-index:50;
+  background:var(--ink);display:flex;z-index:50;box-shadow:var(--e-up);
 }
-nav button{flex:1;color:#7C9AA1;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
-nav button .ic{font-size:19px;line-height:1}
+nav button{flex:1;color:#7C9AA1;font-size:9.5px;font-weight:600;letter-spacing:.02em;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
+  padding-top:2px}
+nav button .ic{display:block;width:29px;height:29px}
+nav button .ic svg{width:100%;height:100%;display:block;fill:none;
+  stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;
+  vector-effect:non-scaling-stroke}
+nav button .ic svg circle{fill:var(--ink)}
+nav button{position:relative;transition:color .15s}
 nav button.on{color:#fff}
-nav button.on .ic{filter:drop-shadow(0 0 8px rgba(242,168,29,.8))}
+nav button.on .ic svg{stroke:var(--amber);stroke-width:1.75}
+nav button.on .ic svg circle{fill:var(--amber);stroke:var(--amber)}
+nav button.on::before{content:"";position:absolute;top:0;left:50%;transform:translateX(-50%);
+  width:30px;height:2.5px;border-radius:0 0 3px 3px;background:var(--amber)}
 
 /* ---------- sheet ---------- */
 .sheet{position:fixed;inset:0;z-index:100;display:none}
@@ -249,21 +280,28 @@ nav button.on .ic{filter:drop-shadow(0 0 8px rgba(242,168,29,.8))}
 .panel{
   position:absolute;left:0;right:0;bottom:0;top:26px;background:var(--paper);
   border-radius:20px 20px 0 0;display:flex;flex-direction:column;
-  animation:up .22s cubic-bezier(.2,.8,.3,1);
+  animation:up .26s cubic-bezier(.22,.9,.26,1);box-shadow:0 -12px 40px -12px rgba(11,32,39,.4);
 }
 @keyframes up{from{transform:translateY(4%);opacity:.7}to{transform:none;opacity:1}}
-.phead{display:flex;align-items:center;justify-content:space-between;padding:16px 16px 12px;border-bottom:1.5px solid var(--line);flex:none}
+.phead{display:flex;align-items:center;justify-content:space-between;padding:16px 16px 13px;
+  border-bottom:1px solid var(--line-soft);flex:none;background:var(--paper);
+  border-radius:20px 20px 0 0}
 .phead h2{font-size:19px}
-.x{width:40px;height:40px;border-radius:50%;background:var(--card);border:1.5px solid var(--line);font-size:17px;line-height:1;display:grid;place-items:center;flex:none}
+.x{width:40px;height:40px;border-radius:50%;background:var(--card);border:1px solid var(--line);
+  font-size:16px;line-height:1;display:grid;place-items:center;flex:none;box-shadow:var(--e1);
+  transition:transform .12s}
+.x:active{transform:scale(.93)}
 .pbody{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 16px calc(20px + env(safe-area-inset-bottom))}
-.pfoot{flex:none;padding:12px 16px calc(12px + env(safe-area-inset-bottom));border-top:1.5px solid var(--line);background:var(--card)}
+.pfoot{flex:none;padding:12px 16px calc(12px + env(safe-area-inset-bottom));
+  border-top:1px solid var(--line-soft);background:var(--card);box-shadow:var(--e-up)}
 .big{font-size:36px !important;font-weight:700;font-family:var(--font);text-align:center;
   padding:16px 12px !important;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
 .split2{display:flex;gap:9px}.split2>*{flex:1}
-.row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid var(--line)}
+.row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid var(--line-soft)}
 .row:last-child{border-bottom:0}
 .note{font-size:13px;color:var(--muted);line-height:1.45;margin:8px 2px 0}
-.warn{background:#FDF3DC;border:1.5px solid var(--amber);border-radius:11px;padding:12px 14px;font-size:13px;line-height:1.45;margin-bottom:14px}
+.warn{background:#FDF6E4;border:1px solid #F0D9A0;border-left:3px solid var(--amber);
+  border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.45;margin-bottom:14px;color:#6B5420}
 .dialog{
   position:absolute;left:18px;right:18px;top:50%;transform:translateY(-50%);
   max-width:400px;margin:0 auto;background:var(--paper);border-radius:18px;padding:22px 20px;
@@ -273,9 +311,10 @@ nav button.on .ic{filter:drop-shadow(0 0 8px rgba(242,168,29,.8))}
 #toast{
   position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--tab-h) + 76px);
   background:var(--ink);color:#fff;padding:12px 18px;border-radius:11px;font-size:14px;font-weight:600;
-  z-index:200;opacity:0;pointer-events:none;transition:opacity .2s;max-width:88vw;text-align:center;
+  z-index:200;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;
+  transform:translateX(-50%) translateY(6px);max-width:88vw;text-align:center;box-shadow:var(--e3);
 }
-#toast.on{opacity:1}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 #toast.act{pointer-events:auto;padding:10px 12px 10px 18px;display:flex;align-items:center;gap:14px}
 #toast.act button{color:var(--amber);font-weight:700;font-size:14px;padding:8px 14px;
   border-radius:9px;background:rgba(242,168,29,.14);white-space:nowrap}
@@ -416,10 +455,22 @@ nav button.on .ic{filter:drop-shadow(0 0 8px rgba(242,168,29,.8))}
 <div class="addbar"><button class="btn" id="fab">+ Add expense</button></div>
 
 <nav>
-  <button data-tab="log" class="on"><span class="ic">🧾</span>Log</button>
-  <button data-tab="bal"><span class="ic">⚖️</span>Balances</button>
-  <button data-tab="settle"><span class="ic">🤝</span>Settle</button>
-  <button data-tab="trip"><span class="ic">⚙️</span>Trip</button>
+  <button data-tab="log" class="on" aria-label="Log"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M6 3.2h12v16.1l-2.4-1.4-2.4 1.4-2.4-1.4-2.4 1.4L6 19.3Z"/>
+    <path d="M9.3 8.1h5.4M9.3 11.7h5.4M9.3 15.3h3.1"/></svg></span>Log</button>
+
+  <button data-tab="bal" aria-label="Balances"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M12 3.6v16.8"/>
+    <path d="M12 7.4h6.6M12 12h-7.4M12 16.6h4.4"/>
+    <circle cx="18.6" cy="7.4" r="1.5"/><circle cx="4.6" cy="12" r="1.5"/><circle cx="16.4" cy="16.6" r="1.5"/></svg></span>Balances</button>
+
+  <button data-tab="settle" aria-label="Settle"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M4 8.6h13.2M14.2 5.4l3.4 3.2-3.4 3.2"/>
+    <path d="M20 15.4H6.8M9.8 12.2l-3.4 3.2 3.4 3.2"/></svg></span>Settle</button>
+
+  <button data-tab="trip" aria-label="Trip"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M3.8 7.3h16.4M3.8 12h16.4M3.8 16.7h16.4"/>
+    <circle cx="9" cy="7.3" r="2.1"/><circle cx="15.4" cy="12" r="2.1"/><circle cx="7.4" cy="16.7" r="2.1"/></svg></span>Trip</button>
 </nav>
 
 <!-- EXPENSE SHEET -->
@@ -1008,11 +1059,11 @@ function paintCustom(){
   const ids=draft.with.filter(id=>S.people[id]);
   const lbl=draft.mode==="shares"?"people":`amount (${S.cur})`;
   el.innerHTML=`<div class="card pad" style="margin:0">${ids.map(id=>`
-    <div class="row" style="padding:9px 0"><span style="flex:1">${esc(nameOf(id))}</span>
+    <div class="row" style="padding:9px 0"><span style="flex:1;display:flex;align-items:center;gap:9px;min-width:0">${avatar(id,"sm")}<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(nameOf(id))}</span></span>
     <input data-part="${id}" inputmode="decimal" style="width:110px;text-align:right;padding:9px 11px"
       value="${draft.mode==="shares"?(draft.parts[id]??1):((draft.parts[id]||0)/100||"")}" placeholder="${lbl}"></div>`).join("")}
     <div class="note" id="partSum"></div></div>`;
-  el.querySelectorAll("input").forEach(i=>i.oninput=()=>{
+  el.querySelectorAll("input[data-part]").forEach(i=>i.oninput=()=>{
     const v=parseFloat(i.value.replace(",","."))||0;
     draft.parts[i.dataset.part]=draft.mode==="shares"?v:C(v);
     sumNote();
@@ -1023,7 +1074,7 @@ function sumNote(){
   const n=$("#partSum");if(!n)return;
   if(draft.mode==="exact"){
     const s=draft.with.reduce((a,id)=>a+(draft.parts[id]||0),0),t=baseCents();
-    n.innerHTML=s===t?`Adds up. ✓`:`<b style="color:var(--coral)">${fmt(Math.abs(t-s))} ${s<t?"left to assign":"over the total"}</b>`;
+    n.innerHTML=s===t?`Adds up.`:`<b style="color:var(--coral)">${fmt(Math.abs(t-s))} ${s<t?"left to assign":"over the total"}</b>`;
   }else{
     const tw=draft.with.reduce((a,id)=>a+(draft.parts[id]??1),0);
     n.textContent=`Split ${tw} ways`;
@@ -1034,7 +1085,7 @@ function paintReceipt(){
   const src=draft.pendingImg||draft.previewUrl;
   el.innerHTML=src
     ?`<div style="position:relative;margin-bottom:12px">
-        <img src="${src}" style="width:100%;max-height:210px;object-fit:cover;border-radius:12px;border:1.5px solid var(--line)">
+        <img src="${src}" style="width:100%;max-height:210px;object-fit:cover;border-radius:12px;border:1px solid var(--line)">
         <button id="dropShot" class="x" style="position:absolute;top:8px;right:8px">\u2715</button></div>`
     :"";
   const d=$("#dropShot");
@@ -1559,7 +1610,7 @@ $("#openFb").onclick=()=>{
       <li>Build → Realtime Database → Create Database → <b>Start in locked mode</b>.</li>
       <li>Open the <b>Rules</b> tab, paste exactly this, and Publish:</li>
     </ol>
-    <textarea readonly id="ruleBox" style="width:100%;height:150px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;padding:10px;border:1.5px solid var(--line);border-radius:11px;background:var(--card)">{ "rules": { "trips": { "$id": { ".read": true, ".write": true } }, "receipts": { "$id": { ".read": true, ".write": true } } } }</textarea>
+    <textarea readonly id="ruleBox" style="width:100%;height:150px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;padding:10px;border:1px solid var(--line);border-radius:11px;background:var(--card)">{ "rules": { "trips": { "$id": { ".read": true, ".write": true } }, "receipts": { "$id": { ".read": true, ".write": true } } } }</textarea>
     <p class="note" style="margin:8px 0 16px">Those rules look open, but each trip lives at a random 32-character address nobody can guess or list — and the contents are encrypted on your phone before they're sent. Firebase stores scrambled text.</p>
     <label class="f"><span>Database URL</span><input id="fbDb" placeholder="https://yourproject-default-rtdb.firebaseio.com" autocomplete="off"></label>
     <label class="f"><span>Trip passphrase</span><input id="fbPass" placeholder="something you'll text the group" autocomplete="off"></label>
@@ -1640,7 +1691,7 @@ $("#shareCode").onclick=async()=>{
   try{await navigator.clipboard.writeText(txt);toast("Invite copied — paste it into a message");}
   catch(e){
     sheet2("Invite",`<p class="note" style="margin-bottom:12px">Press and hold to select all, then send it to the group.</p>
-      <textarea readonly id="codeBox" style="width:100%;height:170px;font-size:13px;padding:12px;border:1.5px solid var(--line);border-radius:11px;background:var(--card)">${esc(txt)}</textarea>`);
+      <textarea readonly id="codeBox" style="width:100%;height:170px;font-size:13px;padding:12px;border:1px solid var(--line);border-radius:11px;background:var(--card)">${esc(txt)}</textarea>`);
     setTimeout(()=>{const t=$("#codeBox");t.focus();t.setSelectionRange(0,t.value.length);},120);
   }
 };
@@ -2372,7 +2423,7 @@ async function doShare(text,title){
   if(navigator.share){try{await navigator.share({text});return;}catch(e){if(e.name==="AbortError")return;}}
   try{await navigator.clipboard.writeText(text);toast("Copied — paste it into a message");return;}catch(e){}
   sheet2(title,`<p class="note" style="margin-bottom:12px">Press and hold to select all, then copy.</p>
-    <textarea readonly id="codeBox" style="width:100%;height:52vh;font-size:13px;padding:12px;border:1.5px solid var(--line);border-radius:11px;background:var(--card)">${esc(text)}</textarea>`);
+    <textarea readonly id="codeBox" style="width:100%;height:52vh;font-size:13px;padding:12px;border:1px solid var(--line);border-radius:11px;background:var(--card)">${esc(text)}</textarea>`);
 }
 $("#shareBtn").onclick=()=>{
   if(!items().length){toast("Nothing to share yet");return;}
