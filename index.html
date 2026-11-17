@@ -897,8 +897,12 @@ function renderSettle(){
   el.innerHTML=ordered.map(p=>{
     const main=fmt(toDisp(p.v),sc);
     const sub=sc===S.cur?"":`<div style="font-size:12px;color:var(--muted)" class="money">${fmt(p.v)}</div>`;
-    const vh=S.people[p.to]?.venmo;
     const mine=me&&(p.from===me||p.to===me);
+    // label by direction: paying out, or asking for what is owed
+    const charging=me&&p.to===me&&p.from!==me;
+    const counterpart=charging?p.from:p.to;
+    const vBtn=!!S.people[counterpart]?.venmo&&(!me||mine);
+    const vLabel=charging?"Request":"Venmo";
     return `<div class="pay"${mine?' style="background:#F6FAFA"':""}>
     <div style="display:flex;align-items:center;gap:3px;flex:none">
       ${avatar(p.from,"sm")}<span style="color:var(--muted);font-size:12px">→</span>${avatar(p.to,"sm")}
@@ -906,7 +910,7 @@ function renderSettle(){
     <div class="flow"><div class="who">${esc(nameOf(p.from))} <span class="arrow">pays</span> ${esc(nameOf(p.to))}</div>
     <div class="amt money">${main}</div>${sub}</div>
     <div style="display:flex;flex-direction:column;gap:6px;flex:none">
-      ${vh?`<button class="chip" data-venmopay="${p.from}|${p.to}|${p.v}" style="background:#008CFF;color:#fff;border-color:#008CFF">Venmo</button>`:""}
+      ${vBtn?`<button class="chip" data-venmopay="${p.from}|${p.to}|${p.v}" style="background:#008CFF;color:#fff;border-color:#008CFF">${vLabel}</button>`:""}
       <button class="chip" data-pay="${p.from}|${p.to}|${p.v}">Settle</button>
     </div></div>`;}).join("");
 }
@@ -1296,26 +1300,28 @@ $("#settleBody").onclick=async e=>{
   const vp=e.target.closest("[data-venmopay]");
   if(vp){
     const [from,to,v]=vp.dataset.venmopay.split("|");
+    const me=meId();
+    // who the money is coming FROM decides pay vs request
+    const charging = me && to===me && from!==me;     // they owe me -> request it
+    const other = charging ? from : to;
     const usd=S.cur==="USD"?+v:(S.alt==="USD"?Math.round(+v*(S.rate||1)):+v);
-    const rawV=(S.people[to].venmo||"").trim();
-    if(!rawV)return toast(`Add ${nameOf(to)}'s Venmo handle under Trip first`);
+    const rawV=(S.people[other].venmo||"").trim();
+    if(!rawV)return toast(`Add ${nameOf(other)}'s Venmo handle under People first`);
+    const amt=(usd/100).toFixed(2);
+    const note=encodeURIComponent(`${S.name} - settling up`);
     if(/^https?:\/\/.*venmo\.com\/code\?/i.test(rawV)){
-      window.open(rawV,"_blank");
-      toast(`Owe ${fmt(usd,"USD")} \u2014 tap Settle once it goes through`);return;
+      // a user_id QR only resolves to a profile; nothing can be prefilled
+      location.href=rawV;
+      toast(`${charging?"Request":"Send"} ${fmt(usd,"USD")} — the amount isn't prefilled for scanned codes`);
+      return;
     }
     const h=rawV.replace(/^@+/,"").replace(/^.*venmo\.com\/(u\/)?/,"").split(/[/?#\s]/)[0];
-    if(!h)return toast(`Add ${nameOf(to)}'s Venmo handle under Trip first`);
-    const note=encodeURIComponent(`${S.name} - settling up`);
-    const amt=(usd/100).toFixed(2);
-    // app scheme first (opens Venmo directly), web profile as the fallback
-    const app=`venmo://paycharge?txn=pay&recipients=${encodeURIComponent(h)}&amount=${amt}&note=${note}`;
-    const web=`https://venmo.com/u/${encodeURIComponent(h)}?txn=pay&amount=${amt}&note=${note}`;
-    let fell=false;
-    const t=setTimeout(()=>{if(!fell){fell=true;window.open(web,"_blank");}},900);
-    const onHide=()=>{fell=true;clearTimeout(t);document.removeEventListener("visibilitychange",onHide);};
-    document.addEventListener("visibilitychange",onHide);
-    location.href=app;
-    toast(`Sending ${fmt(usd,"USD")} to @${h} — tap Settle once it goes through`);
+    if(!h)return toast(`Add ${nameOf(other)}'s Venmo handle under People first`);
+    // Only the app scheme carries amount and note. The https profile link drops
+    // them, so racing the two just opened a bare profile page.
+    location.href=`venmo://paycharge?txn=${charging?"charge":"pay"}`
+      +`&recipients=${encodeURIComponent(h)}&amount=${amt}&note=${note}`;
+    toast(`${charging?"Requesting":"Sending"} ${fmt(usd,"USD")} ${charging?"from":"to"} @${h} · tap Settle once it clears`);
     return;
   }
   const b=e.target.closest("[data-pay]");if(!b)return;
