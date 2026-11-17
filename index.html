@@ -716,8 +716,13 @@ const CURRENCIES=[
 const curInfo=c=>CURRENCIES.find(x=>x[0]===String(c||"").toUpperCase());
 const curName=c=>{const i=curInfo(c);return i?i[1]:c;};
 const CATS=[["🍽️","Food"],["🍸","Drinks"],["🛒","Groceries"],["⛽","Fuel"],["⚓","Mooring"],["🛥️","Charter"],["🚕","Transport"],["🏨","Lodging"],["🎟️","Activity"],["💶","Other"]];
-const VERSION="1.12.0", BUILT="2026-11-17";
+const VERSION="1.12.1", BUILT="2026-11-17";
 const CHANGES=[
+  ["1.12.1","2026-11-17",[
+    "Fixed: entering a trip code merged that trip into whichever trip was open \u2014 it now joins as its own trip",
+    "Fixed: switching trips while one was syncing could copy its people and expenses into the other",
+    "Fixed: deleting the open trip kept listening to it in the background"
+  ]],
   ["1.12.0","2026-11-17",[
     "Adding someone after expenses are logged offers to put them on the ones split with everyone",
     "Everything is ticked, so catching them up is one tap \u2014 untick what they shouldn't share",
@@ -2031,7 +2036,11 @@ $("#tripsBody").onclick=async e=>{
     if(!await ask(`Delete ${t.name}?`,"Every expense on this trip goes with it. Export a backup first if you might want it.","Delete trip"))return;
     delete store.trips[t.tripId];
     const m=syncMap();delete m[t.tripId];localStorage.setItem(LSYNC,JSON.stringify(m));
-    if(t.tripId===S.tripId){const nx=tripList()[0];store.active=nx.tripId;S=nx;sync=syncMap()[S.tripId]||null;}
+    if(t.tripId===S.tripId){
+      stopStream();
+      const nx=tripList()[0];store.active=nx.tripId;S=nx;sync=syncMap()[S.tripId]||null;
+      if(sync){pull(true);startStream();}
+    }
     persist();render();toast("Deleted");return;
   }
   if(ar){
@@ -2320,15 +2329,20 @@ function headers(k,h){
   const o={"Content-Type":"application/json","X-Bin-Versioning":"false"};
   o[h||"X-Master-Key"]=k;return o;
 }
+/* A reply can arrive after the user has switched trips. Merging it then would
+   pour one trip's people and expenses into another, so drop it. */
 async function pull(quiet){
   if(!sync)return;
+  const tid=S.tripId,cfg=sync,moved=()=>S.tripId!==tid||sync!==cfg;
   try{
     let rec=await hostGet();
+    if(moved())return;
     if(rec&&rec.enc===1){
-      if(!sync.pass){if(!quiet)toast("This trip is encrypted — passphrase missing");return;}
-      try{rec=await unseal(rec,sync.pass,sync.bin||sync.path);}
+      if(!cfg.pass){if(!quiet)toast("This trip is encrypted — passphrase missing");return;}
+      try{rec=await unseal(rec,cfg.pass,cfg.bin||cfg.path);}
       catch(x){if(!quiet)toast("Wrong passphrase for this trip");return;}
     }
+    if(moved())return;
     S=merge(S,rec);persist();render();
     if(!quiet)toast("Up to date");
   }catch(e){if(!quiet)toast("Couldn't reach the sync host");}
@@ -2349,24 +2363,26 @@ function startStream(){
   if(!sync||sync.host!=="fb"||!window.EventSource)return;
   const url=`${sync.db.replace(/\/+$/,"")}/trips/${sync.path}.json`;
   try{stream=new EventSource(url);}catch(e){return;}
+  const tid=S.tripId,cfg=sync,moved=()=>S.tripId!==tid||sync!==cfg;
   const take=async ev=>{
+    if(moved())return;
     if(!ev.data||ev.data==="null")return;
     let msg;try{msg=JSON.parse(ev.data);}catch(e){return;}
     if(!msg||msg.data==null)return;
     if(msg.path!==undefined&&msg.path!=="/")return;   // partial patch: fall back to a pull
     let rec=msg.data;
     if(rec&&rec.enc===1){
-      if(!sync.pass)return;
-      try{rec=await unseal(rec,sync.pass,sync.path);}catch(e){return;}
+      if(!cfg.pass)return;
+      try{rec=await unseal(rec,cfg.pass,cfg.path);}catch(e){return;}
     }
-    if(!rec||!rec.people)return;
+    if(!rec||!rec.people||moved())return;
     applying=true;
     S=merge(S,rec);persist();render();
     applying=false;
     markSynced();
   };
   stream.addEventListener("put",take);
-  stream.addEventListener("patch",()=>{if(!applying)pull(true);});
+  stream.addEventListener("patch",()=>{if(!applying&&!moved())pull(true);});
   stream.onerror=()=>{};   // EventSource reconnects on its own
 }
 let lastSync=0;
@@ -2486,7 +2502,13 @@ $("#openJoin").onclick=()=>{
       const raw=$("#jCode").value.trim();
       const o=dec((raw.match(/[#&]join=([A-Za-z0-9+/=_-]+)/)||[,raw])[1]);
       if(!(o.host==="fb"?(o.db&&o.path):(o.bin&&o.key)))throw 0;
-      sync=o;saveSync();startStream();
+      if(Object.values(syncMap()).some(x=>x&&(o.path?x.path===o.path:x.bin===o.bin))){
+        $("#sheet2").classList.remove("on");return toast("You're already on this trip");}
+      // land it in a fresh trip — joining into the open one merged both trips together
+      persist();stopStream();
+      const t=blank();t.name="Shared trip";
+      store.trips[t.tripId]=t;store.active=t.tripId;S=t;
+      sync=o;saveSync();startStream();persist();
       await pull(true);$("#sheet2").classList.remove("on");render();toast("Joined — everything's synced");
     }catch(e){toast("That code didn't work");}
   };
@@ -3609,10 +3631,11 @@ async function joinFromLink(){
   history.replaceState(null,"",location.pathname+location.search);
   let o;try{o=dec(m[1]);}catch(e){toast("That invite link was incomplete");return false;}
   if(!(o.host==="fb"?(o.db&&o.path):(o.bin&&o.key))){toast("That invite link didn't work");return false;}
-  const already=Object.values(syncMap()).some(x=>x&&(x.path===o.path||x.bin===o.bin));
+  const already=Object.values(syncMap()).some(x=>x&&(o.path?x.path===o.path:x.bin===o.bin));
   if(already){toast("You're already on this trip");return false;}
   if(!await ask("Join this trip?","Shared expenses will sync to this phone. Anything already here stays put.","Join"))return false;
   // land it in a fresh trip so nothing local is overwritten
+  persist();stopStream();
   const t=blank();t.name="Shared trip";
   store.trips[t.tripId]=t;store.active=t.tripId;S=t;
   sync=o;saveSync();startStream();persist();
