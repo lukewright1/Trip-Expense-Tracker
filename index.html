@@ -87,9 +87,13 @@ header::after{
   background:linear-gradient(90deg,var(--adriatic) 0%,var(--adriatic) 55%,var(--amber) 100%);
   opacity:.9;
 }
-.hrow{display:flex;justify-content:space-between;align-items:flex-end;gap:12px}
+.hrow1{display:flex;align-items:center;gap:8px}
+.hrow2{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin-top:9px}
+#tripName{flex:1;min-width:0;color:#fff;font-weight:700;letter-spacing:-.015em;
+  line-height:1.15;text-align:left;padding:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #tripName{font-size:23px;line-height:1.1}
-.hsub{font-size:12px;letter-spacing:.01em;color:#8FB3B8;margin-top:5px}
+.hsub{font-size:12px;letter-spacing:.01em;color:#8FB3B8;flex:1;min-width:0;
+  display:flex;align-items:center;gap:7px;flex-wrap:wrap}
 .htot{text-align:right;flex:none}
 .htot .n{font-size:23px;font-weight:700;color:var(--amber);line-height:1.05}
 .htot .l{font-size:10px;letter-spacing:.02em;color:#8FB3B8;margin-top:1px}
@@ -252,6 +256,7 @@ main{padding:16px 14px 24px;max-width:640px;margin:0 auto}
   font-size:12px;font-weight:600;line-height:1}
 .hpill svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
 .hpill:active{background:rgba(255,255,255,.22)}
+.hpill.on{color:var(--amber);border-color:rgba(242,168,29,.45);background:rgba(242,168,29,.14)}
 .ppill{flex:0 0 auto;display:inline-flex;align-items:center;gap:8px;padding:6px 13px 6px 6px;
   border-radius:999px;border:1px solid var(--line-soft);background:var(--card);box-shadow:var(--e1)}
 .ppill .nm2{font-size:13px;font-weight:600;max-width:96px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -284,8 +289,9 @@ main{padding:16px 14px 24px;max-width:640px;margin:0 auto}
 .swatch{width:11px;height:11px;border-radius:3px;flex:none}
 .barfill{height:100%;background:linear-gradient(90deg,var(--adriatic-dk),var(--adriatic));
   border-radius:4px;transition:width .3s cubic-bezier(.2,.8,.3,1)}
+.shareBtn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .shareBtn{
-  width:44px;height:44px;border-radius:50%;flex:none;
+  width:38px;height:38px;border-radius:50%;flex:none;
   background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);
   color:#fff;font-size:18px;display:grid;place-items:center;
 }
@@ -374,24 +380,22 @@ nav button.on::before{content:"";position:absolute;top:0;left:50%;transform:tran
 <body>
 
 <header>
-  <div class="hrow">
-    <div>
-      <button id="tripName" style="color:#fff;font-weight:700;letter-spacing:-.015em;font-size:23px;line-height:1.1;text-align:left;padding:0;display:flex;align-items:center;gap:7px">
-        <span id="tripNameTxt">Trip</span>
-        <svg viewBox="0 0 24 24" aria-hidden="true" style="width:13px;height:13px;flex:none;opacity:.6;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round">
-          <path d="M7 10l5 5 5-5"/></svg></button>
-      <div class="hsub" id="tripSub" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"></div>
-    </div>
+  <div class="hrow1">
+    <button id="tripName"><span id="tripNameTxt">Trip</span></button>
+    <button class="shareBtn" id="cogBtn" aria-label="Trip settings">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="12" r="3.1"/>
+        <path d="M19.1 14.4a1.6 1.6 0 0 0 .3 1.8l.1.1a1.9 1.9 0 1 1-2.7 2.7l-.1-.1a1.6 1.6 0 0 0-2.7 1.1v.3a1.9 1.9 0 1 1-3.8 0v-.2a1.6 1.6 0 0 0-2.8-1.1l-.1.1a1.9 1.9 0 1 1-2.7-2.7l.1-.1a1.6 1.6 0 0 0-1.1-2.7h-.3a1.9 1.9 0 1 1 0-3.8h.2a1.6 1.6 0 0 0 1.1-2.8l-.1-.1a1.9 1.9 0 1 1 2.7-2.7l.1.1a1.6 1.6 0 0 0 1.8.3h.1a1.6 1.6 0 0 0 1-1.5v-.3a1.9 1.9 0 1 1 3.8 0v.2a1.6 1.6 0 0 0 2.7 1.1l.1-.1a1.9 1.9 0 1 1 2.7 2.7l-.1.1a1.6 1.6 0 0 0-.3 1.8v.1a1.6 1.6 0 0 0 1.5 1h.3a1.9 1.9 0 1 1 0 3.8h-.2a1.6 1.6 0 0 0-1.5 1z"/>
+      </svg></button>
+    <button class="shareBtn" id="shareBtn" aria-label="Share">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.2 15.8 15.8 8.2M9.6 8.2h6.2v6.2"/></svg></button>
+  </div>
+  <div class="hrow2">
+    <div class="hsub" id="tripSub"></div>
     <div class="htot">
       <div class="n money" id="tripTotal">0</div>
       <div class="l" id="totLabel">total spent</div>
     </div>
-    <button class="shareBtn" id="cogBtn" aria-label="Trip settings" style="margin-right:-2px">
-      <svg viewBox="0 0 24 24" aria-hidden="true" style="width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round">
-        <circle cx="12" cy="12" r="3.1"/>
-        <path d="M19.1 14.4a1.6 1.6 0 0 0 .3 1.8l.1.1a1.9 1.9 0 1 1-2.7 2.7l-.1-.1a1.6 1.6 0 0 0-2.7 1.1v.3a1.9 1.9 0 1 1-3.8 0v-.2a1.6 1.6 0 0 0-2.8-1.1l-.1.1a1.9 1.9 0 1 1-2.7-2.7l.1-.1a1.6 1.6 0 0 0-1.1-2.7h-.3a1.9 1.9 0 1 1 0-3.8h.2a1.6 1.6 0 0 0 1.1-2.8l-.1-.1a1.9 1.9 0 1 1 2.7-2.7l.1.1a1.6 1.6 0 0 0 1.8.3h.1a1.6 1.6 0 0 0 1-1.5v-.3a1.9 1.9 0 1 1 3.8 0v.2a1.6 1.6 0 0 0 2.7 1.1l.1-.1a1.9 1.9 0 1 1 2.7 2.7l-.1.1a1.6 1.6 0 0 0-.3 1.8v.1a1.6 1.6 0 0 0 1.5 1h.3a1.9 1.9 0 1 1 0 3.8h-.2a1.6 1.6 0 0 0-1.5 1z"/>
-      </svg></button>
-    <button class="shareBtn" id="shareBtn" aria-label="Share">↗</button>
   </div>
 </header>
 
@@ -477,12 +481,14 @@ nav button.on::before{content:"";position:absolute;top:0;left:50%;transform:tran
         <input id="newPerson" placeholder="Add a name or couple" autocomplete="off">
         <button class="btn teal" style="flex:0 0 88px" id="addPerson">Add</button>
       </div>
+      <button class="btn ghost" id="invitePeople" style="margin-top:10px">Invite them by text or email</button>
+      <p class="note" id="inviteHint" style="margin:8px 0 0"></p>
     </div>
 
-    <div class="eyebrow">Default payer</div>
+    <div class="eyebrow">New expenses</div>
     <div class="card pad">
       <select id="mePick"></select>
-      <p class="note" style="margin:8px 0 0">New expenses start with this person as the payer. Pick yourself, or whoever pays most often. Saved on this phone only.</p>
+      <p class="note" style="margin:8px 0 0">Who a new expense starts out as the payer. Separate from who you are \u2014 change that under <b>Your details</b>. Saved on this phone only.</p>
     </div>
 
     <div class="eyebrow">Name and currency</div>
@@ -703,8 +709,20 @@ const CURRENCIES=[
 const curInfo=c=>CURRENCIES.find(x=>x[0]===String(c||"").toUpperCase());
 const curName=c=>{const i=curInfo(c);return i?i[1]:c;};
 const CATS=[["🍽️","Food"],["🍸","Drinks"],["🛒","Groceries"],["⛽","Fuel"],["⚓","Mooring"],["🛥️","Charter"],["🚕","Transport"],["🏨","Lodging"],["🎟️","Activity"],["💶","Other"]];
-const VERSION="1.6.0", BUILT="2026-11-16";
+const VERSION="1.7.0", BUILT="2026-11-16";
 const CHANGES=[
+  ["1.7.0","2026-11-16",[
+    "Who you are and who pays by default are now separate settings",
+    "The header always shows your own number, whoever the default payer is"
+  ]],
+  ["1.6.2","2026-11-16",[
+    "Trip name stays on one line, shrinking to fit",
+    "Notes pill sits beside the people pill in the header"
+  ]],
+  ["1.6.1","2026-11-16",[
+    "Invite button sits with the people list, where you add them",
+    "Text or email any one person straight from their row"
+  ]],
   ["1.6.0","2026-11-16",[
     "The app leads with your own number once you've said who you are",
     "Every expense shows your share, or says you're not in it",
@@ -780,10 +798,18 @@ let store=loadStore();
 let S=store.trips[store.active];
 let sync=(JSON.parse(localStorage.getItem(LSYNC)||"{}")||{})[store.active]||null;
 let draft=null, tab="log", pushTimer=null, filter="all";
-const LME="tripsplit.me.v1";
+/* Two different per-device ideas that used to share one setting:
+   meId()      — who is holding this phone. Drives the personal view everywhere.
+   defPayer()  — who a new expense starts out pre-filled as. Often you, but on a
+                 trip where one person fronts everything it is usually them. */
+const LME="tripsplit.me.v1", LDEF="tripsplit.defpayer.v1";
 function meMap(){try{return JSON.parse(localStorage.getItem(LME))||{};}catch(e){return {};}}
 function meId(){const id=meMap()[S.tripId];return (id&&S.people[id]&&!S.people[id].del)?id:null;}
 function setMe(id){const m=meMap();if(id)m[S.tripId]=id;else delete m[S.tripId];localStorage.setItem(LME,JSON.stringify(m));render();}
+function defMap(){try{return JSON.parse(localStorage.getItem(LDEF))||{};}catch(e){return {};}}
+function defPayerId(){const id=defMap()[S.tripId];return (id&&S.people[id]&&!S.people[id].del)?id:null;}
+function defPayer(){return defPayerId()||meId()||(people()[0]||{}).id;}
+function setDefPayer(id){const m=defMap();if(id)m[S.tripId]=id;else delete m[S.tripId];localStorage.setItem(LDEF,JSON.stringify(m));render();}
 
 function blank(){
   return {tripId:uid(),name:"Trip",cur:"USD",alt:"",rate:1,archived:false,metaUpd:now(),people:{},items:{}};
@@ -922,7 +948,11 @@ const nameOf=id=>S.people[id]?.name||"—";
 
 /* ---------------- render ---------------- */
 function render(){
-  $("#tripNameTxt").textContent=S.name||"Trip";
+  const nm=S.name||"Trip";
+  $("#tripNameTxt").textContent=nm;
+  // step the size down so a long trip name still lands on one line
+  const L=nm.length;
+  $("#tripName").style.fontSize=L<=15?"23px":L<=19?"21px":L<=24?"19px":"17px";
   const list=items(),spend=list.filter(i=>i.kind!=="pay");
   const tot=spend.reduce((a,i)=>a+i.cents,0);
   const me0=meId();
@@ -938,15 +968,11 @@ function render(){
   }
 
   const n=people().length;
-  $("#tripSub").innerHTML=n
-    ? `<button id="whoPill" class="hpill">
-         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.6"/><path d="M5.2 19.2a6.8 6.8 0 0 1 13.6 0"/></svg>
-         ${n} ${n===1?"person":"people"}</button>
-       <span>${spend.length} ${spend.length===1?"expense":"expenses"}${tot?` \u00b7 ${fmtD(tot)} total`:""}</span>`
-    : `<button id="whoPill" class="hpill">
-         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.6"/><path d="M5.2 19.2a6.8 6.8 0 0 1 13.6 0"/></svg>
-         Add people</button>`;
+  $("#tripSub").innerHTML=`<button id="whoPill" class="hpill">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.6"/><path d="M5.2 19.2a6.8 6.8 0 0 1 13.6 0"/></svg>
+      ${n?`${n} ${n===1?"person":"people"}`:"Add people"}</button>${n?notesPill():""}`;
   const wp=$("#whoPill");if(wp)wp.onclick=openWho;
+  const np=$("#notesPill");if(np)np.onclick=openNotes;
   renderLog(list);renderCatBreak();renderDayChart();renderPersonChart();renderFilter();renderBal();renderSettle();renderPeople();renderTrips();renderSync();
   $("#setName").value=S.name||"";
   const curOpts=(cur,none)=>(none?`<option value="">${none}</option>`:"")+
@@ -958,6 +984,15 @@ function render(){
   $("#setBy").value=S.settleBy||"";
   $("#setRate").value=S.rate;$("#curA").textContent=S.cur;$("#curB").textContent=S.alt||"—";
   const cf=$("#carryFrom");if(cf)cf.textContent=S.name||"this trip";
+  const ih=$("#inviteHint");
+  if(ih){
+    const ps=people(), reach=ps.filter(p=>p.email||p.phone).length;
+    ih.innerHTML=!sync
+      ? `Sync isn't on yet, so there's nothing to join. Set it up under <b>Sync across phones</b>.`
+      : reach
+        ? `${reach} of ${ps.length} have a phone or email saved. The link joins them straight in \u2014 no code to paste.`
+        : `Add a phone or email to anyone to send their invite from here.`;
+  }
   const ns=$("#notesSub");
   if(ns){
     const t=((S.notes&&S.notes.text)||"").trim();
@@ -976,8 +1011,9 @@ function render(){
       ? `${e0.who&&S.people[e0.who]?S.people[e0.who].name:"Someone"} \u00b7 ${agoShort(e0.t)}`
       : "Who changed what, and when";
   }
-  $("#mePick").innerHTML=`<option value="">No default</option>`+
-    people().map(p=>`<option value="${p.id}"${meId()===p.id?" selected":""}>${esc(p.name)}</option>`).join("");
+  const me1=meId(), dp=defPayerId();
+  $("#mePick").innerHTML=`<option value="">${me1?`Me \u2014 ${esc(S.people[me1].name)}`:"Whoever I am"}</option>`+
+    people().map(p=>`<option value="${p.id}"${dp===p.id?" selected":""}>${esc(p.name)}</option>`).join("");
   $("#dispCurSeg").innerHTML=curSeg();$("#bookCur").textContent=S.cur;
   showIf("#dispCurSeg",twoCur());
   const de=$("#dispCurSeg").previousElementSibling;
@@ -997,6 +1033,12 @@ function catTotals(){
   const m={};
   items().filter(i=>i.kind!=="pay").forEach(i=>{const c=i.cat||"💶";m[c]=(m[c]||0)+i.cents;});
   return Object.entries(m).sort((a,b)=>b[1]-a[1]);
+}
+function notesPill(){
+  const has=((S.notes&&S.notes.text)||"").trim().length>0;
+  return `<button id="notesPill" class="hpill${has?" on":""}">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.6h12v16.8H6z"/><path d="M9 8.4h6M9 12h6M9 15.6h3.4"/></svg>
+    Notes</button>`;
 }
 function openWho(){
   const ps=people(),b=balances(),me=meId();
@@ -1189,7 +1231,7 @@ function renderBal(){
   const b=balances(),ps=people();
   const me=meId(), mc=$("#myCard");
   if(mc){
-    if(!me)mc.innerHTML=`<div class="warn" style="margin:2px 0 4px">Set <b>Default payer</b> under Trip to see your own position first.</div>`;
+    if(!me)mc.innerHTML=`<div class="warn" style="margin:2px 0 4px">Tap <b>Your details</b> under Trip to say which one you are, and this shows your own position first.</div>`;
     else{
       const net=b[me]||0;
       let paid=0,share=0;
@@ -1511,7 +1553,7 @@ function openSheet(id){
   const ex=id?S.items[id]:null;
   draft=ex?JSON.parse(JSON.stringify(ex)):{
     id:uid(),kind:"exp",madeBy:meId(),desc:"",cents:0,cur:S.cur,cat:"🍽️",
-    payers:[meId()||people()[0].id],paid:{},
+    payers:[defPayer()],paid:{},
     with:people().map(p=>p.id),
     mode:people().some(p=>(p.size||1)>1)?"shares":"equal",
     parts:Object.fromEntries(people().map(p=>[p.id,p.size||1])),
@@ -1889,7 +1931,7 @@ async function fetchLiveRate(){
   if(v){$("#setRate").value=v.toFixed(4);toast(`1 ${a} = ${v.toFixed(4)} ${b}`);}
   else toast("Couldn't reach the rate service \u2014 enter it manually");
 }
-$("#mePick").onchange=()=>setMe($("#mePick").value||null);
+$("#mePick").onchange=()=>setDefPayer($("#mePick").value||null);
 $("#liveRate").onclick=fetchLiveRate;
 $("#setAlt").onchange=()=>{curHint();const a=$("#setCur").value,b=$("#setAlt").value;if(b&&b!==a)fetchLiveRate();};
 $("#setCur").onchange=()=>{curHint();const a=$("#setCur").value,b=$("#setAlt").value;if(b&&b!==a)fetchLiveRate();};
@@ -1967,6 +2009,11 @@ function openPerson2(id){
       <div class="split2"><input id="edVenmo" value="${p.venmo?(isScannedCode(p.venmo)?esc(p.venmo):"@"+esc(venmoHandle(p.venmo))):""}" placeholder="@handle" autocomplete="off">
       <button class="btn ghost" style="flex:0 0 92px" id="edQr">Scan</button></div></label>
     ${isScannedCode(p.venmo)?`<div class="warn">This is a scanned Venmo code. It opens their profile, but Venmo can only prefill an amount from a username \u2014 replace it with their <b>@handle</b> to get one-tap settling.</div>`:""}
+    ${(sync&&(p.phone||p.email))?`<div class="eyebrow" style="margin-top:0">Invite</div>
+      <div class="btnrow" style="margin:0 0 16px">
+        ${p.phone?`<a class="btn ghost" style="text-decoration:none" id="edTextInv">Text them</a>`:""}
+        ${p.email?`<a class="btn ghost" style="text-decoration:none" id="edMailInv">Email them</a>`:""}
+      </div>`:""}
     <button class="btn teal" id="edSave" style="margin-bottom:10px">Save</button>
     <button class="btn danger" id="edDel">Remove from trip</button>`);
   const pick=(accept,cb)=>{
@@ -1984,6 +2031,12 @@ function openPerson2(id){
     $("#sheet2").classList.remove("on");toast("Photo updated");
   });
   $("#edQr").onclick=()=>pick("image/*",f=>scanVenmoQR(f,id));
+  if(sync){
+    const {subject,body}=inviteText();
+    const tb=$("#edTextInv");if(tb)tb.href=telHref(p.phone,body);
+    const mb=$("#edMailInv");
+    if(mb)mb.href=`mailto:${encodeURIComponent(p.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  }
   $("#edSave").onclick=()=>{
     const nm=$("#edName").value.trim();
     if(!nm)return toast("Give them a name");
@@ -2001,6 +2054,7 @@ function openPerson2(id){
           :"They'll be taken off this trip.","Remove"))return;
     S.people[id]={...S.people[id],del:true,upd:now(),by:meId()};
     if(meId()===id)setMe(null);
+    if(defPayerId()===id)setDefPayer(null);
     save();$("#sheet2").classList.remove("on");toast("Removed");
   };
 }
@@ -2308,27 +2362,54 @@ function inviteText(){
     subject:`${S.name} \u2014 shared expenses`,
     body:`You're invited to ${S.name}.\n\nTap this link to join. It opens the expense tracker and connects you to the group \u2014 nothing to type in:\n${link}\n\nOnce it opens, add it to your home screen so it behaves like an app.`};
 }
+function telHref(phone,body){
+  // iOS wants sms:number&body=..., Android wants ?body=... — "&" works on both
+  const n=String(phone||"").replace(/[^\d+]/g,"");
+  return `sms:${n}${n?"&":"?&"}body=${encodeURIComponent(body)}`;
+}
 function inviteSheet(){
   if(!sync)return toast("Turn on sync first so there's something to join");
-  const ps=people().filter(p=>p.email);
   const {subject,body}=inviteText();
-  const mailAll=ps.length?`mailto:?bcc=${encodeURIComponent(ps.map(p=>p.email).join(","))}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`:"";
+  const ps=people();
+  const mails=ps.filter(p=>p.email);
+  const reachable=ps.filter(p=>p.email||p.phone);
+  const mailAll=mails.length?`mailto:?bcc=${encodeURIComponent(mails.map(p=>p.email).join(","))}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`:"";
   sheet2("Invite the group",`
-    <p class="note" style="margin:0 0 16px">The link joins them straight in \u2014 no code to paste.</p>
-    ${mailAll?`<a class="btn teal" href="${mailAll}" style="margin-bottom:9px;text-decoration:none">Email everyone with an address (${ps.length})</a>`:
-      `<div class="warn">Nobody has an email saved yet. Add addresses under <b>People</b> to email invites directly.</div>`}
-    <a class="btn ghost" href="sms:?&body=${encodeURIComponent(body)}" style="margin-bottom:9px;text-decoration:none">Send as a text</a>
-    <button class="btn ghost" id="invShare" style="margin-bottom:16px">Share another way</button>
-    ${ps.length?`<div class="eyebrow">Invite one person</div><div class="card">${ps.map(p=>`
+    <p class="note" style="margin:0 0 16px">The link joins them straight in — nothing to paste, and it asks for their Venmo once they're there.</p>
+    <div class="eyebrow" style="margin-top:0">Everyone at once</div>
+    ${mailAll?`<a class="btn teal" href="${mailAll}" style="margin-bottom:9px;text-decoration:none">Email ${mails.length} ${mails.length===1?"person":"people"}</a>`:""}
+    <a class="btn ${mailAll?"ghost":"teal"}" href="${telHref("",body)}" style="margin-bottom:9px;text-decoration:none">Start a group text</a>
+    <button class="btn ghost" id="invShare" style="margin-bottom:4px">Share another way</button>
+    <div class="eyebrow">One at a time</div>
+    ${ps.length?`<div class="card">${ps.map(p=>`
       <div class="row" style="padding:11px 14px">
-        <span style="display:flex;align-items:center;gap:10px;min-width:0">${avatar(p.id,"sm")}
+        <span style="display:flex;align-items:center;gap:10px;min-width:0;flex:1">${avatar(p.id,"sm")}
           <span style="min-width:0"><div style="font-weight:600">${esc(p.name)}</div>
-          <div class="note" style="margin:0;overflow:hidden;text-overflow:ellipsis">${esc(p.email)}</div></span></span>
-        <a class="chip" style="text-decoration:none;flex:none" href="mailto:${encodeURIComponent(p.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}">Email</a>
-      </div>`).join("")}</div>`:""}`);
+          <div class="note" style="margin:0;overflow:hidden;text-overflow:ellipsis">${p.phone||p.email?esc(p.phone||p.email):"no phone or email"}</div></span></span>
+        <span style="display:flex;gap:6px;flex:none">
+          ${p.phone?`<a class="chip" style="text-decoration:none" href="${telHref(p.phone,body)}">Text</a>`:""}
+          ${p.email?`<a class="chip" style="text-decoration:none" href="mailto:${encodeURIComponent(p.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}">Email</a>`:""}
+          ${!p.phone&&!p.email?`<button class="chip" data-addcontact="${p.id}">Add contact</button>`:""}
+        </span>
+      </div>`).join("")}</div>`:""}
+    ${reachable.length<ps.length?`<p class="note">Tap <b>Add contact</b> to save a phone or email for anyone missing one.</p>`:""}`);
   $("#invShare").onclick=()=>{$("#sheet2").classList.remove("on");setTimeout(()=>$("#shareCode").click(),160);};
+  $("#sheet2Body").onclick=e=>{
+    const b=e.target.closest("[data-addcontact]");if(!b)return;
+    $("#sheet2").classList.remove("on");
+    setTimeout(()=>openPerson2(b.dataset.addcontact),160);
+  };
 }
+
 $("#inviteBtn").onclick=inviteSheet;
+$("#invitePeople").onclick=()=>{
+  if(!sync){
+    toast("Turn on sync first \u2014 opening settings");
+    setTimeout(()=>{const t=$("#syncState");if(t)t.scrollIntoView({block:"center",behavior:"smooth"});},250);
+    return;
+  }
+  inviteSheet();
+};
 $("#shareCode").onclick=async()=>{
   const code=enc(sync.host==="fb"
     ?{host:"fb",db:sync.db,path:sync.path,pass:sync.pass}
