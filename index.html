@@ -482,7 +482,11 @@ nav button.on::before{content:"";position:absolute;top:0;left:50%;transform:tran
         <input id="newPerson" placeholder="Add a name or couple" autocomplete="off">
         <button class="btn teal" style="flex:0 0 88px" id="addPerson">Add</button>
       </div>
-      <button class="btn ghost" id="invitePeople" style="margin-top:10px">Invite them by text or email</button>
+      <button class="btn ghost" id="importContact" style="margin-top:10px">Add from a contact card</button>
+      <div class="btnrow" style="margin-top:9px">
+        <button class="btn ghost" id="invitePeople">Invite by text or email</button>
+        <button class="btn ghost" id="qrPeople" style="flex:0 0 112px">Show QR</button>
+      </div>
       <p class="note" id="inviteHint" style="margin:8px 0 0"></p>
     </div>
 
@@ -710,8 +714,13 @@ const CURRENCIES=[
 const curInfo=c=>CURRENCIES.find(x=>x[0]===String(c||"").toUpperCase());
 const curName=c=>{const i=curInfo(c);return i?i[1]:c;};
 const CATS=[["🍽️","Food"],["🍸","Drinks"],["🛒","Groceries"],["⛽","Fuel"],["⚓","Mooring"],["🛥️","Charter"],["🚕","Transport"],["🏨","Lodging"],["🎟️","Activity"],["💶","Other"]];
-const VERSION="1.7.2", BUILT="2026-11-16";
+const VERSION="1.8.0", BUILT="2026-11-16";
 const CHANGES=[
+  ["1.8.0","2026-11-16",[
+    "Add a person from a shared contact card, phone and email included",
+    "Show a QR code to invite someone standing next to you",
+    "AirDrop the invite from the share sheet"
+  ]],
   ["1.7.2","2026-11-16",[
     "Claiming your profile immediately shows what you owe",
     "A shared trip prompts you to say who you are, so the numbers are yours"
@@ -2009,6 +2018,13 @@ function addPerson(){
   $("#newPerson").value="";save();
 }
 $("#addPerson").onclick=addPerson;
+$("#importContact").onclick=()=>importContact(v=>{
+  const id=uid();
+  S.people[id]={id,name:v.name||"New person",madeBy:meId(),size:1,
+    phone:v.phone,email:v.email,made:now(),upd:now(),by:meId()};
+  save();toast(`Added ${v.name||"them"}`);
+  setTimeout(()=>openPerson2(id),200);
+});
 $("#newPerson").onkeydown=e=>{if(e.key==="Enter")addPerson();};
 function openPerson2(id){
   const p=S.people[id];if(!p)return;
@@ -2034,6 +2050,7 @@ function openPerson2(id){
         ${p.phone?`<a class="btn ghost" style="text-decoration:none" id="edTextInv">Text them</a>`:""}
         ${p.email?`<a class="btn ghost" style="text-decoration:none" id="edMailInv">Email them</a>`:""}
       </div>`:""}
+    <button class="btn ghost" id="edFromContact" style="margin-bottom:10px">Fill from a contact card</button>
     <button class="btn teal" id="edSave" style="margin-bottom:10px">Save</button>
     <button class="btn danger" id="edDel">Remove from trip</button>`);
   const pick=(accept,cb)=>{
@@ -2057,6 +2074,12 @@ function openPerson2(id){
     const mb=$("#edMailInv");
     if(mb)mb.href=`mailto:${encodeURIComponent(p.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   }
+  $("#edFromContact").onclick=()=>importContact(v=>{
+    if(v.phone)$("#edPhone").value=v.phone;
+    if(v.email)$("#edEmail").value=v.email;
+    if(v.name&&!$("#edName").value.trim())$("#edName").value=v.name;
+    toast("Filled in \u2014 check it, then Save");
+  });
   $("#edSave").onclick=()=>{
     const nm=$("#edName").value.trim();
     if(!nm)return toast("Give them a name");
@@ -2398,7 +2421,10 @@ function inviteSheet(){
     <p class="note" style="margin:0 0 16px">The link joins them straight in — nothing to paste, and it asks for their Venmo once they're there.</p>
     ${mailAll?`<div class="eyebrow" style="margin-top:0">Everyone at once</div>
       <a class="btn teal" href="${mailAll}" style="margin-bottom:9px;text-decoration:none">Email ${mails.length} ${mails.length===1?"person":"people"}</a>`:""}
-    <button class="btn ghost" id="invShare" style="margin-bottom:4px">Share the link another way</button>
+    <div class="btnrow" style="margin:0 0 4px">
+      <button class="btn ghost" id="invQR">Show QR code</button>
+      <button class="btn ghost" id="invShare">AirDrop or share</button>
+    </div>
     <div class="eyebrow">One at a time</div>
     ${ps.length?`<div class="card">${ps.map(p=>`
       <div class="row" style="padding:11px 14px">
@@ -2413,6 +2439,7 @@ function inviteSheet(){
       </div>`).join("")}</div>`:""}
     ${reachable.length<ps.length?`<p class="note">Tap <b>Add contact</b> to save a phone or email for anyone missing one.</p>`:""}`);
   $("#invShare").onclick=()=>{$("#sheet2").classList.remove("on");setTimeout(()=>$("#shareCode").click(),160);};
+  $("#invQR").onclick=openQR;
   $("#sheet2Body").onclick=e=>{
     const b=e.target.closest("[data-addcontact]");if(!b)return;
     $("#sheet2").classList.remove("on");
@@ -2421,6 +2448,10 @@ function inviteSheet(){
 }
 
 $("#inviteBtn").onclick=inviteSheet;
+$("#qrPeople").onclick=()=>{
+  if(!sync)return toast("Turn on sync first \u2014 there's nothing to join yet");
+  openQR();
+};
 $("#invitePeople").onclick=()=>{
   if(!sync){
     toast("Turn on sync first \u2014 opening settings");
@@ -2472,6 +2503,103 @@ $("#stopSync").onclick=async()=>{
   if(!await ask("Stop syncing?","This phone keeps everything it already has, but changes stop travelling.","Stop syncing"))return;
   sync=null;saveSync();stopStream();render();
 };
+
+/* ---------------- QR for the invite ---------------- */
+let qrLib=null;
+function loadQR(){
+  if(qrLib)return qrLib;
+  qrLib=new Promise((res,rej)=>{
+    if(window.qrcode)return res(window.qrcode);
+    const sc=document.createElement("script");
+    sc.src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js";
+    sc.onload=()=>res(window.qrcode);
+    sc.onerror=()=>{qrLib=null;rej(new Error("no network"));};
+    document.head.appendChild(sc);
+  });
+  return qrLib;
+}
+async function openQR(){
+  if(!sync)return toast("Turn on sync first");
+  const {link}=inviteText();
+  sheet2("Scan to join",`
+    <p class="note" style="margin:0 0 14px">Point another phone's camera at this. It opens the trip and asks which name on the list is them.</p>
+    <div id="qrBox" style="background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;place-items:center;min-height:240px">
+      <span class="note" style="margin:0">Drawing\u2026</span></div>
+    <p class="note" id="qrWarn" style="margin:12px 0 0">Anyone who scans this joins the trip, so only show it to people you want in.</p>`);
+  try{
+    const qr=await loadQR();
+    const q=qr(0,"M");            // auto size, medium error correction
+    q.addData(link);q.make();
+    $("#qrBox").innerHTML=q.createSvgTag({cellSize:5,margin:0,scalable:true})
+      .replace("<svg ",'<svg style="width:100%;height:auto;max-width:260px" ');
+  }catch(e){
+    $("#qrBox").innerHTML=`<span class="note" style="margin:0;text-align:center">Couldn't load the QR drawer \u2014 it needs a connection the first time. Use the link instead.</span>`;
+  }
+}
+
+/* ---------------- contacts ----------------
+   iOS Safari has no Contact Picker API, so a shared .vcf is the only way in:
+   Contacts -> Share Contact -> Save to Files, then pick the file here. Chrome
+   on Android does have the picker, so use it when it is actually there. */
+function unfoldVcf(txt){return txt.replace(/\r\n/g,"\n").replace(/\n[ \t]/g,"");}
+function vcfValue(line){
+  const i=line.indexOf(":");
+  if(i<0)return "";
+  let v=line.slice(i+1).trim();
+  if(/ENCODING=QUOTED-PRINTABLE/i.test(line)){
+    // the escapes are UTF-8 bytes, so collect them and decode once — character
+    // by character turns "Jos=C3=A9" into "JosÃ©"
+    const bytes=[];
+    for(let i=0;i<v.length;i++){
+      if(v[i]==="="&&/^[0-9A-F]{2}$/i.test(v.substr(i+1,2))){bytes.push(parseInt(v.substr(i+1,2),16));i+=2;}
+      else bytes.push(v.charCodeAt(i)&0xFF);
+    }
+    try{v=new TextDecoder("utf-8").decode(new Uint8Array(bytes));}catch(e){}
+  }
+  return v;
+}
+function parseVcf(txt){
+  const lines=unfoldVcf(txt).split("\n");
+  let name="",phone="",email="",nParts=null;
+  for(const l of lines){
+    const key=l.split(/[;:]/)[0].toUpperCase();
+    if(key==="FN"&&!name)name=vcfValue(l);
+    else if(key==="N"&&!nParts)nParts=vcfValue(l).split(";");
+    else if(key==="TEL"&&!phone)phone=vcfValue(l);
+    else if(key==="EMAIL"&&!email)email=vcfValue(l);
+  }
+  if(!name&&nParts)name=[nParts[1],nParts[0]].filter(Boolean).join(" ").trim();
+  return {name:name.trim(),phone:phone.trim(),email:email.trim()};
+}
+function pickFile(accept,cb){
+  const i=document.createElement("input");
+  i.type="file";i.accept=accept;i.style.display="none";
+  document.body.appendChild(i);
+  i.onchange=e=>{const f=e.target.files[0];i.remove();if(f)cb(f);};
+  i.click();
+}
+function importContact(cb){
+  // Android Chrome can open the real picker
+  if(navigator.contacts&&navigator.contacts.select){
+    navigator.contacts.select(["name","tel","email"],{multiple:false})
+      .then(r=>{
+        if(!r||!r.length)return;
+        const c=r[0];
+        cb({name:(c.name&&c.name[0])||"",phone:(c.tel&&c.tel[0])||"",email:(c.email&&c.email[0])||""});
+      }).catch(()=>{});
+    return;
+  }
+  pickFile(".vcf,text/vcard,text/x-vcard",f=>{
+    const r=new FileReader();
+    r.onload=()=>{
+      const v=parseVcf(String(r.result||""));
+      if(!v.name&&!v.phone&&!v.email)return toast("Couldn't read that contact file");
+      cb(v);
+    };
+    r.onerror=()=>toast("Couldn't read that file");
+    r.readAsText(f);
+  });
+}
 
 /* ---------------- Venmo QR codes ---------------- */
 let jsqr=null;
