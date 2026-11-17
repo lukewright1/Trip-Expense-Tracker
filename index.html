@@ -716,8 +716,13 @@ const CURRENCIES=[
 const curInfo=c=>CURRENCIES.find(x=>x[0]===String(c||"").toUpperCase());
 const curName=c=>{const i=curInfo(c);return i?i[1]:c;};
 const CATS=[["🍽️","Food"],["🍸","Drinks"],["🛒","Groceries"],["⛽","Fuel"],["⚓","Mooring"],["🛥️","Charter"],["🚕","Transport"],["🏨","Lodging"],["🎟️","Activity"],["💶","Other"]];
-const VERSION="1.11.1", BUILT="2026-11-17";
+const VERSION="1.12.0", BUILT="2026-11-17";
 const CHANGES=[
+  ["1.12.0","2026-11-17",[
+    "Adding someone after expenses are logged offers to put them on the ones split with everyone",
+    "Everything is ticked, so catching them up is one tap \u2014 untick what they shouldn't share",
+    "Exact-amount splits and repayments are never changed"
+  ]],
   ["1.11.1","2026-11-17",[
     "No app changes \u2014 test release"
   ]],
@@ -2130,7 +2135,9 @@ function openPerson2(id,fresh){
     S.people[id]={...S.people[id],name:nm,size:Math.max(1,parseInt($("#edSize").value)||1),
       email:$("#edEmail").value.trim(),phone:$("#edPhone").value.trim(),
       venmo:clean,upd:now(),by:meId()};
-    save();$("#sheet2").classList.remove("on");toast("Saved");
+    save();
+    if(fresh&&offerBackfill(id))return;
+    $("#sheet2").classList.remove("on");toast("Saved");
   };
   $("#edDel").onclick=async()=>{
     // backing out of an add they just started needs no confirmation
@@ -2148,6 +2155,52 @@ function openPerson2(id,fresh){
     if(defPayerId()===id)setDefPayer(null);
     save();$("#sheet2").classList.remove("on");toast("Removed");
   };
+}
+/* Someone added after expenses were logged: offer to put them on the ones that
+   were split with everyone, all ticked, so catching up is one tap. Exact splits
+   and repayments are never offered — changing those would break their amounts. */
+function backfillCandidates(id){
+  const others=people().filter(p=>p.id!==id).map(p=>p.id);
+  if(!others.length)return [];
+  return items().filter(it=>{
+    const w=it.with||[];
+    return it.kind!=="pay"&&it.mode!=="exact"&&!w.includes(id)&&others.every(o=>w.includes(o));
+  });
+}
+function offerBackfill(id){
+  const list=backfillCandidates(id);
+  if(!list.length)return false;
+  const nm=nameOf(id),n=list.length;
+  sheet2(`Add ${nm} to earlier expenses?`,`
+    <p class="note" style="margin:0 0 14px">${n===1?"This expense was":`These ${n} expenses were`} split with everyone before ${esc(nm)} joined. Untick anything they shouldn't share.</p>
+    <div class="card"><div class="pad" style="padding-top:4px;padding-bottom:4px">
+      ${list.map(it=>`<label class="row" style="cursor:pointer">
+        <span style="display:flex;align-items:center;gap:10px;min-width:0">
+          <input type="checkbox" data-bf="${esc(it.id)}" checked style="flex:0 0 auto;width:20px;height:20px">
+          <span style="min-width:0"><span style="display:block;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${it.cat||"\u{1F4B6}"} ${esc(it.desc||"Expense")}</span>
+          <span class="note">${new Date(it.date+"T12:00").toLocaleDateString(undefined,{day:"numeric",month:"short"})}</span></span>
+        </span>
+        <b style="flex:0 0 auto">${fmt(it.cents,it.cur)}</b></label>`).join("")}
+    </div></div>
+    <button class="btn teal" id="bfGo" style="margin:16px 0 10px">Add to selected</button>
+    <button class="btn ghost" id="bfSkip">Skip</button>`);
+  const body=$("#sheet2Body");
+  const paint=()=>{const k=body.querySelectorAll("[data-bf]:checked").length;
+    $("#bfGo").textContent=k?`Add to ${k} ${k===1?"expense":"expenses"}`:"Add to selected";
+    $("#bfGo").disabled=!k;};
+  body.querySelectorAll("[data-bf]").forEach(c=>c.onchange=paint);paint();
+  $("#bfSkip").onclick=()=>{$("#sheet2").classList.remove("on");toast("Saved");};
+  $("#bfGo").onclick=()=>{
+    const ids=[...body.querySelectorAll("[data-bf]:checked")].map(c=>c.dataset.bf);
+    const size=S.people[id]?.size||1;
+    ids.forEach(iid=>{
+      const it=S.items[iid];if(!it||(it.with||[]).includes(id))return;
+      S.items[iid]={...it,with:[...(it.with||[]),id],parts:{...(it.parts||{}),[id]:size},upd:now(),by:meId()};
+    });
+    save();$("#sheet2").classList.remove("on");
+    toast(`${nm} added to ${ids.length} ${ids.length===1?"expense":"expenses"}`);
+  };
+  return true;
 }
 $("#peopleBody").onclick=e=>{
   const b=e.target.closest("[data-edit-person]");
