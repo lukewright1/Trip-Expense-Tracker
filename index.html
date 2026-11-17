@@ -402,6 +402,7 @@ nav button.on::before{content:"";position:absolute;top:0;left:50%;transform:tran
 <main>
   <!-- EXPENSES -->
   <section class="screen on" id="s-log">
+    <div id="claimBanner"></div>
     <div class="filterbar" id="filterBar"></div>
     <div id="logBody"></div>
   </section>
@@ -709,8 +710,17 @@ const CURRENCIES=[
 const curInfo=c=>CURRENCIES.find(x=>x[0]===String(c||"").toUpperCase());
 const curName=c=>{const i=curInfo(c);return i?i[1]:c;};
 const CATS=[["🍽️","Food"],["🍸","Drinks"],["🛒","Groceries"],["⛽","Fuel"],["⚓","Mooring"],["🛥️","Charter"],["🚕","Transport"],["🏨","Lodging"],["🎟️","Activity"],["💶","Other"]];
-const VERSION="1.7.0", BUILT="2026-11-16";
+const VERSION="1.7.2", BUILT="2026-11-16";
 const CHANGES=[
+  ["1.7.2","2026-11-16",[
+    "Claiming your profile immediately shows what you owe",
+    "A shared trip prompts you to say who you are, so the numbers are yours"
+  ]],
+  ["1.7.1","2026-11-16",[
+    "Joining shows the name list so you can take over your own profile",
+    "It says what each person is still missing, and fills in the rest",
+    "Dropped the empty group-text button"
+  ]],
   ["1.7.0","2026-11-16",[
     "Who you are and who pays by default are now separate settings",
     "The header always shows your own number, whoever the default payer is"
@@ -973,7 +983,7 @@ function render(){
       ${n?`${n} ${n===1?"person":"people"}`:"Add people"}</button>${n?notesPill():""}`;
   const wp=$("#whoPill");if(wp)wp.onclick=openWho;
   const np=$("#notesPill");if(np)np.onclick=openNotes;
-  renderLog(list);renderCatBreak();renderDayChart();renderPersonChart();renderFilter();renderBal();renderSettle();renderPeople();renderTrips();renderSync();
+  renderClaim();renderLog(list);renderCatBreak();renderDayChart();renderPersonChart();renderFilter();renderBal();renderSettle();renderPeople();renderTrips();renderSync();
   $("#setName").value=S.name||"";
   const curOpts=(cur,none)=>(none?`<option value="">${none}</option>`:"")+
     CURRENCIES.map(([c,n,where,sy])=>
@@ -1049,7 +1059,8 @@ function openWho(){
       const col=Math.abs(v)<1?"var(--muted)":(v>0?"var(--adriatic-dk)":"var(--coral)");
       const bits=[];
       if((p.size||1)>1)bits.push(`${p.size} people`);
-      if(p.email)bits.push(p.email);
+      if(!p.claimed)bits.push("not set up yet");
+    if(p.email)bits.push(p.email);
       return `<button class="item" style="width:100%;text-align:left" data-who="${p.id}">
         ${avatar(p.id)}
         <div class="mid"><div class="t">${esc(p.name)}${me===p.id?`<span class="note" style="margin:0 0 0 6px">you</span>`:""}</div>
@@ -1180,6 +1191,15 @@ function renderCatBreak(){
 
 function myShare(it){const m=meId();return m?(shareMap(it)[m]||0):0;}
 function myPaid(it){const m=meId();return m?(paidMap(it)[m]||0):0;}
+function renderClaim(){
+  const el=$("#claimBanner");if(!el)return;
+  el.innerHTML=(sync&&!meId()&&people().length)
+    ? `<div class="warn" style="margin:2px 0 10px;display:flex;align-items:center;gap:10px">
+         <span style="flex:1">These are the group's totals. Say which one you are to see what <b>you</b> owe.</span>
+         <button class="chip" id="claimNow" style="flex:none">Set up</button></div>`
+    : "";
+  const b=$("#claimNow");if(b)b.onclick=openWelcome;
+}
 function renderLog(all){
   const el=$("#logBody");
   const list=filter==="all"?all:all.filter(i=>(i.cat||"💶")===filter);
@@ -2360,7 +2380,7 @@ function inviteText(){
   const link=joinLink(code);
   return {link,
     subject:`${S.name} \u2014 shared expenses`,
-    body:`You're invited to ${S.name}.\n\nTap this link to join. It opens the expense tracker and connects you to the group \u2014 nothing to type in:\n${link}\n\nOnce it opens, add it to your home screen so it behaves like an app.`};
+    body:`You're invited to ${S.name}.\n\nTap this link to join:\n${link}\n\nIt opens the shared expense tracker, asks which name on the list is you, and lets you fill in your Venmo so everyone can settle up. Add it to your home screen and it behaves like an app.`};
 }
 function telHref(phone,body){
   // iOS wants sms:number&body=..., Android wants ?body=... — "&" works on both
@@ -2376,10 +2396,9 @@ function inviteSheet(){
   const mailAll=mails.length?`mailto:?bcc=${encodeURIComponent(mails.map(p=>p.email).join(","))}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`:"";
   sheet2("Invite the group",`
     <p class="note" style="margin:0 0 16px">The link joins them straight in — nothing to paste, and it asks for their Venmo once they're there.</p>
-    <div class="eyebrow" style="margin-top:0">Everyone at once</div>
-    ${mailAll?`<a class="btn teal" href="${mailAll}" style="margin-bottom:9px;text-decoration:none">Email ${mails.length} ${mails.length===1?"person":"people"}</a>`:""}
-    <a class="btn ${mailAll?"ghost":"teal"}" href="${telHref("",body)}" style="margin-bottom:9px;text-decoration:none">Start a group text</a>
-    <button class="btn ghost" id="invShare" style="margin-bottom:4px">Share another way</button>
+    ${mailAll?`<div class="eyebrow" style="margin-top:0">Everyone at once</div>
+      <a class="btn teal" href="${mailAll}" style="margin-bottom:9px;text-decoration:none">Email ${mails.length} ${mails.length===1?"person":"people"}</a>`:""}
+    <button class="btn ghost" id="invShare" style="margin-bottom:4px">Share the link another way</button>
     <div class="eyebrow">One at a time</div>
     ${ps.length?`<div class="card">${ps.map(p=>`
       <div class="row" style="padding:11px 14px">
@@ -3299,57 +3318,81 @@ $("#verLine").onclick=()=>{
 /* ---------------- boot ---------------- */
 /* After joining, the newcomer says who they are and drops in their own payment
    details. Without this the organiser has to chase everyone for Venmo handles. */
+function missingBits(p){
+  const m=[];
+  if(!p.venmo)m.push("Venmo");
+  if(!p.phone)m.push("phone");
+  if(!p.email)m.push("email");
+  return m;
+}
 function openWelcome(){
   const ps=people();
-  sheet2("You're in",`
-    <p class="note" style="margin:0 0 16px">Tell the group who you are. Your Venmo handle is what lets everyone settle up with one tap — you only do this once.</p>
-    <label class="f"><span>Which one are you?</span>
-      <select id="wmPick">
-        <option value="">Choose your name</option>
-        ${ps.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join("")}
-        <option value="+">I'm not listed — add me</option>
-      </select></label>
-    <div id="wmNew" style="display:none">
-      <label class="f"><span>Your name</span><input id="wmName" placeholder="Name, or a couple" autocomplete="off"></label>
-      <label class="f"><span>How many people is this?</span><input id="wmSize" inputmode="numeric" value="1"></label>
-    </div>
+  sheet2("Which one are you?",`
+    <p class="note" style="margin:0 0 14px">Pick your name to take over that profile. Anything already filled in stays; you just add what's missing.</p>
+    ${ps.length?`<div class="card">${ps.map(p=>{
+      const miss=missingBits(p);
+      const sub=p.claimed?`set up · ${miss.length?"no "+miss.join(", "):"all set"}`
+                         :(miss.length?`needs ${miss.join(", ")}`:"all set");
+      return `<button class="item" style="width:100%;text-align:left" data-claim="${p.id}">
+        ${avatar(p.id)}
+        <div class="mid"><div class="t">${esc(p.name)}</div>
+          <div class="s">${(p.size||1)>1?`${p.size} people · `:""}${esc(sub)}</div></div>
+        <div class="chip" style="flex:none">That's me</div>
+      </button>`;}).join("")}</div>`:""}
+    <button class="btn ghost" id="wmNotListed" style="margin-top:14px">I'm not listed — add me</button>
+    <button class="btn ghost" id="wmSkip" style="margin-top:9px">Skip for now</button>`);
+  $("#wmSkip").onclick=()=>$("#sheet2").classList.remove("on");
+  $("#wmNotListed").onclick=()=>claimStep(null);
+  $("#sheet2Body").onclick=e=>{
+    const b=e.target.closest("[data-claim]");if(!b)return;
+    claimStep(b.dataset.claim);
+  };
+}
+function claimStep(id){
+  const p=id?S.people[id]:null;
+  const miss=p?missingBits(p):["Venmo","phone","email"];
+  sheet2(p?`You're ${p.name}`:"Add yourself",`
+    ${p&&p.claimed?`<div class="warn">Someone has already set this profile up on another phone. Taking it over is fine if that was you — otherwise go back and pick a different name.</div>`:""}
+    <p class="note" style="margin:0 0 14px">${miss.length
+      ? `Still needed: <b>${esc(miss.join(", "))}</b>. Your Venmo handle is what lets everyone settle up with one tap.`
+      : `Everything's filled in. Change anything that's wrong.`}</p>
+    ${p?"":`<label class="f"><span>Your name</span><input id="wmName" placeholder="Name, or a couple" autocomplete="off"></label>
+      <label class="f"><span>How many people is this?</span><input id="wmSize" inputmode="numeric" value="1"></label>`}
     <label class="f"><span>Venmo</span><input id="wmVenmo" placeholder="@handle" autocomplete="off"></label>
     <label class="f"><span>Phone</span><input id="wmPhone" type="tel" inputmode="tel" placeholder="Optional" autocomplete="off"></label>
     <label class="f"><span>Email</span><input id="wmEmail" type="email" inputmode="email" placeholder="Optional" autocomplete="off"></label>
-    <button class="btn teal" id="wmSave" style="margin-bottom:9px">Save and start</button>
-    <button class="btn ghost" id="wmSkip">Skip for now</button>`);
-  const pick=$("#wmPick");
-  pick.onchange=()=>{
-    const v=pick.value;
-    $("#wmNew").style.display=v==="+"?"block":"none";
-    const p=S.people[v];
-    if(p){
-      $("#wmVenmo").value=p.venmo?(isScannedCode(p.venmo)?p.venmo:"@"+venmoHandle(p.venmo)):"";
-      $("#wmPhone").value=p.phone||"";
-      $("#wmEmail").value=p.email||"";
-    }
-  };
-  $("#wmSkip").onclick=()=>$("#sheet2").classList.remove("on");
+    <button class="btn teal" id="wmSave" style="margin-bottom:9px">${p?"This is me — save":"Add me to the trip"}</button>
+    <button class="btn ghost" id="wmBack">Back</button>`);
+  if(p){
+    $("#wmVenmo").value=p.venmo?(isScannedCode(p.venmo)?p.venmo:"@"+venmoHandle(p.venmo)):"";
+    $("#wmPhone").value=p.phone||"";
+    $("#wmEmail").value=p.email||"";
+  }
+  $("#wmBack").onclick=openWelcome;
   $("#wmSave").onclick=()=>{
-    let id=pick.value;
-    if(!id)return toast("Pick your name, or add yourself");
-    if(id==="+"){
+    let pid=id;
+    if(!pid){
       const nm=$("#wmName").value.trim();
       if(!nm)return toast("What's your name?");
-      id=uid();
-      S.people[id]={id,name:nm,size:Math.max(1,parseInt($("#wmSize").value)||1),
-        made:now(),upd:now(),by:id,madeBy:id};
+      pid=uid();
+      S.people[pid]={id:pid,name:nm,size:Math.max(1,parseInt($("#wmSize").value)||1),
+        made:now(),upd:now(),by:pid,madeBy:pid};
     }
     const rv=$("#wmVenmo").value.trim();
-    S.people[id]={...S.people[id],
+    S.people[pid]={...S.people[pid],
       venmo:isScannedCode(rv)?rv:venmoHandle(rv),
       phone:$("#wmPhone").value.trim(),
       email:$("#wmEmail").value.trim(),
-      upd:now(),by:id};
-    setMe(id);
-    save();$("#sheet2").classList.remove("on");toast(`Welcome, ${nameOf(id)}`);
+      claimed:now(),upd:now(),by:pid};
+    setMe(pid);
+    save();$("#sheet2").classList.remove("on");
+    const net=balances()[pid]||0;
+    toast(Math.abs(net)<1
+      ? `You're ${nameOf(pid)} \u00b7 all square so far`
+      : `You're ${nameOf(pid)} \u00b7 ${net>0?"owed":"you owe"} ${fmtD(Math.abs(net))}`);
   };
 }
+
 async function joinFromLink(){
   const m=(location.hash||"").match(/[#&]join=([A-Za-z0-9+/=_-]+)/);
   if(!m)return false;
