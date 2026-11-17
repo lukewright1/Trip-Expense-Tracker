@@ -621,8 +621,11 @@ const CURRENCIES=[
 const curInfo=c=>CURRENCIES.find(x=>x[0]===String(c||"").toUpperCase());
 const curName=c=>{const i=curInfo(c);return i?i[1]:c;};
 const CATS=[["🍽️","Food"],["🍸","Drinks"],["🛒","Groceries"],["⛽","Fuel"],["⚓","Mooring"],["🛥️","Charter"],["🚕","Transport"],["🏨","Lodging"],["🎟️","Activity"],["💶","Other"]];
-const VERSION="1.1.0", BUILT="2026-11-16";
+const VERSION="1.1.1", BUILT="2026-11-16";
 const CHANGES=[
+  ["1.1.1","2026-11-16",[
+    "The log now says how an expense was split, not just how many people were on it"
+  ]],
   ["1.1.0","2026-11-16",[
     "Activity feed \u2014 who added, edited or settled what, and when",
     "Expenses show who entered them",
@@ -878,7 +881,7 @@ function renderLog(all){
     const pn=Object.keys(paidMap(it));if(!pn.length)pn.push(it.payer);
     const payTxt=pn.length>1?`${pn.length} people paid`:`${nameOf(pn[0])} paid`;
     const sub=it.kind==="pay"?`${nameOf(it.payer)} → ${nameOf(it.with[0])}`
-      :`${payTxt} · split ${who===people().length?"evenly":`${who} way${who===1?"":"s"}`}`;
+      :`${payTxt} · ${splitPhrase(it,m,who)}`;
     const alt=otherCur()&&S.rate?`<div class="b money">${fmt(toOther(it.cents),otherCur())}</div>`:"";
     h+=`<div class="swipe">
       <div class="acts"><button class="ed" data-sw-edit="${it.id}">Edit</button><button class="dl" data-sw-del="${it.id}">Delete</button></div>
@@ -2472,6 +2475,20 @@ async function lookupRate(from,to,date){
 }
 
 /* ---------------- detail views ---------------- */
+/* How the money was divided, in a few words. The log used to report only how
+   many people were on an expense, so an exact split across everyone still read
+   as "split evenly". */
+function splitPhrase(it,m,who){
+  m=m||shareMap(it); who=who||Object.keys(m).length;
+  if(it.mode==="exact")return "custom amounts";
+  if(it.mode==="shares"){
+    const ids=Object.keys(m);
+    const heads=ids.reduce((a,id)=>a+(it.parts?.[id]??1),0);
+    const even=ids.every(id=>(it.parts?.[id]??1)===(it.parts?.[ids[0]]??1));
+    if(!even)return `per head \u00b7 ${heads} share${heads===1?"":"s"}`;
+  }
+  return who===people().length?"split evenly":`split ${who} way${who===1?"":"s"}`;
+}
 function splitLabel(it){
   return it.mode==="exact"?"Exact amounts":it.mode==="shares"?"Per head":"Evenly";
 }
