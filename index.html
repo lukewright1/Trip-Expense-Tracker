@@ -128,9 +128,11 @@ main{padding:16px 14px 24px;max-width:640px;margin:0 auto}
 .av.lg{width:52px;height:52px;font-size:17px}
 .av.ring{box-shadow:0 0 0 2px var(--card),0 0 0 3.5px var(--adriatic)}
 /* people editor — avatar column, stacked fields, nothing competing for one line */
-.prow{display:flex;gap:12px;padding:11px 14px;border-bottom:1px solid var(--line-soft);
+.prow{display:flex;gap:10px;padding:11px 14px;border-bottom:1px solid var(--line-soft);
   align-items:center;width:100%;text-align:left}
-.prow:active{background:var(--paper)}
+.prowMain{flex:1;display:flex;align-items:center;gap:12px;min-width:0;text-align:left;padding:0}
+.prowMain:active{opacity:.6}
+.pinv{flex:none}
 .pmain{flex:1;min-width:0}
 .pnm{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .psub{font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
@@ -228,7 +230,7 @@ main{padding:16px 14px 24px;max-width:640px;margin:0 auto}
 /* ---------- chips ---------- */
 .chips{display:flex;flex-wrap:wrap;gap:8px}
 .chip{
-  flex:0 0 auto;white-space:nowrap;
+  flex:0 0 auto;white-space:nowrap;color:inherit;
   padding:10px 14px;border-radius:999px;border:1px solid var(--line);
   background:var(--card);font-size:14px;font-weight:600;min-height:42px;
   display:inline-flex;align-items:center;justify-content:center;gap:6px;line-height:1;
@@ -482,20 +484,9 @@ nav button.on::before{content:"";position:absolute;top:0;left:50%;transform:tran
         <input id="newPerson" placeholder="Add a name or couple" autocomplete="name">
         <button class="btn teal" style="flex:0 0 88px" id="addPerson">Add</button>
       </div>
-      <div id="addMore" style="display:none;margin-top:10px">
-        <label class="f"><span>Phone</span>
-          <input id="newPhone" type="tel" inputmode="tel" placeholder="(555) 123-4567" autocomplete="tel"></label>
-        <label class="f"><span>Email</span>
-          <input id="newEmail" type="email" inputmode="email" placeholder="name@example.com" autocomplete="email"></label>
-        <label class="f"><span>Venmo</span>
-          <input id="newVenmo" placeholder="@handle" autocomplete="off"></label>
-        <button class="btn teal" id="addPerson2" style="margin-bottom:0">Add person</button>
-      </div>
-      <div class="split2" style="margin-top:10px">
-        <button class="btn ghost" id="moreToggle">Add details</button>
-        <button class="btn ghost" id="pastePerson">Paste their info</button>
-      </div>
-      <div class="note" style="margin-top:7px">Your keyboard suggests contacts as you type.</div>
+      <button class="btn ghost" id="pastePerson" style="margin-top:10px">Paste details</button>
+      <div id="pasteSlot"></div>
+      <div class="note" style="margin-top:7px">Add the name, then fill in phone, email and Venmo on the next step.</div>
       <div class="btnrow" style="margin-top:9px">
         <button class="btn ghost" id="invitePeople">Invite by text or email</button>
         <button class="btn ghost" id="qrPeople" style="flex:0 0 112px">Show QR</button>
@@ -727,8 +718,17 @@ const CURRENCIES=[
 const curInfo=c=>CURRENCIES.find(x=>x[0]===String(c||"").toUpperCase());
 const curName=c=>{const i=curInfo(c);return i?i[1]:c;};
 const CATS=[["🍽️","Food"],["🍸","Drinks"],["🛒","Groceries"],["⛽","Fuel"],["⚓","Mooring"],["🛥️","Charter"],["🚕","Transport"],["🏨","Lodging"],["🎟️","Activity"],["💶","Other"]];
-const VERSION="1.9.0", BUILT="2026-11-16";
+const VERSION="1.10.0", BUILT="2026-11-16";
 const CHANGES=[
+  ["1.10.0","2026-11-16",[
+    "A Text button on each person's row sends them their own join link",
+    "Adding a name goes straight on to phone, email, Venmo and a photo",
+    "Their link carries their profile, so there is no code to read or type"
+  ]],
+  ["1.9.1","2026-11-16",[
+    "Paste details now opens a box you paste into, and shows what it picked out",
+    "Fixed: the old version relied on an iOS paste prompt that was easy to miss"
+  ]],
   ["1.9.0","2026-11-16",[
     "Add a phone, email and Venmo at the same time as the name",
     "Invites sent to one person land them straight on their own profile",
@@ -1544,15 +1544,24 @@ function renderPeople(){
     if(p.email)bits.push(p.email);
     if(p.venmo)bits.push(isScannedCode(p.venmo)?"Venmo code":"@"+venmoHandle(p.venmo));
     if(meId()===p.id)bits.unshift("you");
-    return `<button class="prow" data-edit-person="${p.id}">
-      ${avatar(p.id)}
-      <span class="pmain">
-        <span class="pnm">${esc(p.name)}</span>
-        <span class="psub">${bits.length?esc(bits.join(" · ")):"1 person"}</span>
-      </span>
-      <span class="pedit"><svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M4.5 16.6 15.8 5.3a2 2 0 0 1 2.9 2.9L7.4 19.5l-3.8.9z"/></svg></span>
-    </button>`;}).join("")
+    // one tap to text them their own link, straight from the row
+    let inv="";
+    if(sync&&!p.claimed){
+      const t=inviteText(p.id);
+      if(p.phone)inv=`<a class="chip pinv" style="text-decoration:none" href="${telHref(p.phone,t.body)}">Text</a>`;
+      else if(p.email)inv=`<a class="chip pinv" style="text-decoration:none" href="mailto:${encodeURIComponent(p.email)}?subject=${encodeURIComponent(t.subject)}&body=${encodeURIComponent(t.body)}">Email</a>`;
+    }
+    return `<div class="prow">
+      <button class="prowMain" data-edit-person="${p.id}">
+        ${avatar(p.id)}
+        <span class="pmain">
+          <span class="pnm">${esc(p.name)}</span>
+          <span class="psub">${bits.length?esc(bits.join(" · ")):"1 person"}</span>
+        </span>
+        <span class="pedit"><svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4.5 16.6 15.8 5.3a2 2 0 0 1 2.9 2.9L7.4 19.5l-3.8.9z"/></svg></span>
+      </button>${inv}
+    </div>`;}).join("")
     :`<div class="empty" style="padding:26px"><h3>Nobody added yet</h3><p>Add everyone splitting costs. Enter a couple as one line if they settle together.</p></div>`;
 }
 
@@ -2036,42 +2045,39 @@ $("#tripName").onclick=()=>{
   document.querySelector('nav button[data-tab="trip"]').click();
   setTimeout(()=>$("#tripsBody").scrollIntoView({block:"center",behavior:"smooth"}),80);
 };
-function addMoreOpen(){return $("#addMore").style.display!=="none";}
-function setAddMore(on){
-  $("#addMore").style.display=on?"block":"none";
-  // one Add button at a time, and it sits after the last field they filled
-  $("#addPerson").style.display=on?"none":"";
-  $("#moreToggle").textContent=on?"Hide details":"Add details";
+// a name alone is not much use, so go straight on to the rest
+function newPerson(fields){
+  const id=uid();
+  S.people[id]={id,size:1,phone:"",email:"",venmo:"",...fields,
+    madeBy:meId(),made:now(),upd:now(),by:meId()};
+  save();
+  setTimeout(()=>openPerson2(id,true),180);
+  return id;
 }
 function addPerson(){
   const n=$("#newPerson").value.trim();
   if(!n)return toast("Give them a name first");
-  const more=addMoreOpen();
-  const rv=more?$("#newVenmo").value.trim():"";
-  const id=uid();
-  S.people[id]={id,name:n,madeBy:meId(),size:1,
-    phone:more?$("#newPhone").value.trim():"",
-    email:more?$("#newEmail").value.trim():"",
-    venmo:rv?(isScannedCode(rv)?rv:venmoHandle(rv)):"",
-    made:now(),upd:now(),by:meId()};
   $("#newPerson").value="";
-  if(more){$("#newPhone").value="";$("#newEmail").value="";$("#newVenmo").value="";}
-  save();toast(`Added ${n}`);
+  newPerson({name:n});
 }
 $("#addPerson").onclick=addPerson;
-$("#addPerson2").onclick=addPerson;
-$("#moreToggle").onclick=()=>setAddMore(!addMoreOpen());
-$("#pastePerson").onclick=()=>pasteContact(v=>{
-  const id=uid();
-  S.people[id]={id,name:v.name||"New person",madeBy:meId(),size:1,
-    phone:v.phone,email:v.email,made:now(),upd:now(),by:meId()};
-  save();toast(`Added ${v.name||"them"} \u2014 check the details`);
-  setTimeout(()=>openPerson2(id),200);
+
+$("#pasteSlot").innerHTML=pasteBoxHtml("pasteBox","pasteTa","pasteOut","pasteUse");
+wirePasteBox("pasteBox","pasteTa","pasteOut","pasteUse",v=>{
+  $("#pastePerson").textContent="Paste details";
+  newPerson({name:v.name||"New person",phone:v.phone||"",email:v.email||""});
 });
+$("#pastePerson").onclick=()=>{
+  const b=$("#pasteBox"), on=b.style.display!=="none";
+  b.style.display=on?"none":"block";
+  $("#pastePerson").textContent=on?"Paste details":"Hide paste box";
+  if(!on)setTimeout(()=>$("#pasteTa").focus(),60);
+};
 $("#newPerson").onkeydown=e=>{if(e.key==="Enter")addPerson();};
-function openPerson2(id){
+function openPerson2(id,fresh){
   const p=S.people[id];if(!p)return;
-  sheet2(p.name||"Person",`
+  sheet2(fresh?`Add ${p.name}`:(p.name||"Person"),`
+    ${fresh?`<p class="note" style="margin:0 0 16px">Phone, email and Venmo are all optional \u2014 but a phone lets you text them their own join link, and Venmo is what makes settling up one tap.</p>`:""}
     <div style="display:flex;justify-content:center;margin-bottom:18px">
       <button id="edPic" style="position:relative">${avatar(id,"lg")}
         <span class="pplus">+</span></button>
@@ -2093,7 +2099,8 @@ function openPerson2(id){
         ${p.phone?`<a class="btn ghost" style="text-decoration:none" id="edTextInv">Text them</a>`:""}
         ${p.email?`<a class="btn ghost" style="text-decoration:none" id="edMailInv">Email them</a>`:""}
       </div>`:""}
-    <button class="btn ghost" id="edPaste" style="margin-bottom:10px">Paste their info</button>
+    <button class="btn ghost" id="edPaste" style="margin-bottom:10px">Paste details</button>
+    ${pasteBoxHtml("edPasteBox","edPasteTa","edPasteOut","edPasteUse")}
     <button class="btn teal" id="edSave" style="margin-bottom:10px">Save</button>
     <button class="btn danger" id="edDel">Remove from trip</button>`);
   const pick=(accept,cb)=>{
@@ -2123,7 +2130,15 @@ function openPerson2(id){
     if(v.name&&!$("#edName").value.trim())$("#edName").value=v.name;
     toast("Filled in \u2014 check it, then Save");
   };
-  $("#edPaste").onclick=()=>pasteContact(fillEditor);
+  wirePasteBox("edPasteBox","edPasteTa","edPasteOut","edPasteUse",fillEditor);
+  $("#edPaste").onclick=()=>{
+    const b=$("#edPasteBox"), on=b.style.display!=="none";
+    b.style.display=on?"none":"block";
+    $("#edPaste").textContent=on?"Paste details":"Hide paste box";
+    if(!on)setTimeout(()=>$("#edPasteTa").focus(),60);
+  };
+  const delBtn=$("#edDel");
+  if(fresh&&delBtn)delBtn.textContent="Cancel \u2014 don't add them";
   $("#edSave").onclick=()=>{
     const nm=$("#edName").value.trim();
     if(!nm)return toast("Give them a name");
@@ -2135,6 +2150,12 @@ function openPerson2(id){
     save();$("#sheet2").classList.remove("on");toast("Saved");
   };
   $("#edDel").onclick=async()=>{
+    // backing out of an add they just started needs no confirmation
+    if(fresh){
+      S.people[id]={...S.people[id],del:true,upd:now(),by:meId()};
+      save();$("#sheet2").classList.remove("on");toast("Not added");
+      return;
+    }
     const used=items().some(i=>i.payer===id||(i.with||[]).includes(id)||(i.paid&&i.paid[id]));
     if(!await ask(`Remove ${nameOf(id)}?`,
       used?"They're on existing expenses. Those stay in the log and their share spreads across whoever is left."
@@ -2608,18 +2629,41 @@ function parseContactText(txt){
   }
   return {name,phone,email};
 }
-function pasteContact(cb){
-  const take=txt=>{
-    const v=parseContactText(txt);
-    if(!v.name&&!v.phone&&!v.email)return toast("Nothing to read in that text");
+// a box you paste into beats reading the clipboard: iOS hides that behind a
+// one-second "Paste" menu that is easy to miss, and this shows its work
+function pasteFound(v){
+  const bits=[];
+  if(v.name)bits.push(`name <b>${esc(v.name)}</b>`);
+  if(v.phone)bits.push(`phone <b>${esc(v.phone)}</b>`);
+  if(v.email)bits.push(`email <b>${esc(v.email)}</b>`);
+  return bits.length?`Found ${bits.join(", ")}.`:"Nothing recognisable yet \u2014 needs a name, phone or email.";
+}
+function wirePasteBox(boxId,taId,outId,useId,cb){
+  const ta=$("#"+taId), out=$("#"+outId), use=$("#"+useId);
+  if(!ta)return;
+  const refresh=()=>{
+    const v=parseContactText(ta.value);
+    out.innerHTML=pasteFound(v);
+    use.disabled=!(v.name||v.phone||v.email);
+    use.style.opacity=use.disabled?".45":"";
+  };
+  ta.oninput=refresh; ta.onpaste=()=>setTimeout(refresh,0);
+  refresh();
+  use.onclick=()=>{
+    const v=parseContactText(ta.value);
+    if(!v.name&&!v.phone&&!v.email)return;
+    ta.value="";refresh();
+    $("#"+boxId).style.display="none";
     cb(v);
   };
-  if(navigator.clipboard&&navigator.clipboard.readText){
-    navigator.clipboard.readText().then(take)
-      .catch(()=>toast("Copy their info first, then tap this again"));
-    return;
-  }
-  toast("Long-press a field and Paste instead");
+}
+function pasteBoxHtml(boxId,taId,outId,useId){
+  return `<div id="${boxId}" style="display:none;margin-top:10px">
+    <textarea id="${taId}" rows="4" placeholder="Paste a text, an email signature, anything with their name and number in it"
+      style="width:100%;padding:12px;border:1px solid var(--line);border-radius:11px;background:var(--card);font:inherit;font-size:15px"></textarea>
+    <div class="note" id="${outId}" style="margin:7px 0 9px"></div>
+    <button class="btn teal" id="${useId}" style="margin-bottom:0">Use these details</button>
+  </div>`;
 }
 /* ---------------- Venmo QR codes ---------------- */
 let jsqr=null;
