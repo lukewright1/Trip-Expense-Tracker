@@ -479,10 +479,23 @@ nav button.on::before{content:"";position:absolute;top:0;left:50%;transform:tran
     <div class="card" id="peopleBody"></div>
     <div class="card pad" style="margin-top:-2px">
       <div class="split2">
-        <input id="newPerson" placeholder="Add a name or couple" autocomplete="off">
+        <input id="newPerson" placeholder="Add a name or couple" autocomplete="name">
         <button class="btn teal" style="flex:0 0 88px" id="addPerson">Add</button>
       </div>
-      <button class="btn ghost" id="importContact" style="margin-top:10px">Add from a contact card</button>
+      <div id="addMore" style="display:none;margin-top:10px">
+        <label class="f"><span>Phone</span>
+          <input id="newPhone" type="tel" inputmode="tel" placeholder="(555) 123-4567" autocomplete="tel"></label>
+        <label class="f"><span>Email</span>
+          <input id="newEmail" type="email" inputmode="email" placeholder="name@example.com" autocomplete="email"></label>
+        <label class="f"><span>Venmo</span>
+          <input id="newVenmo" placeholder="@handle" autocomplete="off"></label>
+        <button class="btn teal" id="addPerson2" style="margin-bottom:0">Add person</button>
+      </div>
+      <div class="split2" style="margin-top:10px">
+        <button class="btn ghost" id="moreToggle">Add details</button>
+        <button class="btn ghost" id="pastePerson">Paste their info</button>
+      </div>
+      <div class="note" style="margin-top:7px">Your keyboard suggests contacts as you type.</div>
       <div class="btnrow" style="margin-top:9px">
         <button class="btn ghost" id="invitePeople">Invite by text or email</button>
         <button class="btn ghost" id="qrPeople" style="flex:0 0 112px">Show QR</button>
@@ -493,7 +506,7 @@ nav button.on::before{content:"";position:absolute;top:0;left:50%;transform:tran
     <div class="eyebrow">New expenses</div>
     <div class="card pad">
       <select id="mePick"></select>
-      <p class="note" style="margin:8px 0 0">Who a new expense starts out as the payer. Separate from who you are \u2014 change that under <b>Your details</b>. Saved on this phone only.</p>
+      <p class="note" style="margin:8px 0 0">Who a new expense starts out as the payer. Separate from who you are — change that under <b>Your details</b>. Saved on this phone only.</p>
     </div>
 
     <div class="eyebrow">Name and currency</div>
@@ -553,7 +566,7 @@ nav button.on::before{content:"";position:absolute;top:0;left:50%;transform:tran
     </div>
     <p class="note">Add to Home Screen from your browser's share menu to run it fullscreen like an app.</p>
     <button id="verLine" style="display:block;width:100%;text-align:center;color:var(--muted);
-      font-size:12px;padding:18px 0 40px">Trip Split <b id="verNum"></b> \u00b7 <span id="verDate"></span></button>
+      font-size:12px;padding:18px 0 40px">Trip Split <b id="verNum"></b> · <span id="verDate"></span></button>
   </section>
 </main>
 
@@ -714,8 +727,19 @@ const CURRENCIES=[
 const curInfo=c=>CURRENCIES.find(x=>x[0]===String(c||"").toUpperCase());
 const curName=c=>{const i=curInfo(c);return i?i[1]:c;};
 const CATS=[["🍽️","Food"],["🍸","Drinks"],["🛒","Groceries"],["⛽","Fuel"],["⚓","Mooring"],["🛥️","Charter"],["🚕","Transport"],["🏨","Lodging"],["🎟️","Activity"],["💶","Other"]];
-const VERSION="1.8.0", BUILT="2026-11-16";
+const VERSION="1.9.0", BUILT="2026-11-16";
 const CHANGES=[
+  ["1.9.0","2026-11-16",[
+    "Add a phone, email and Venmo at the same time as the name",
+    "Invites sent to one person land them straight on their own profile",
+    "Typing a phone or email that's already on the trip offers that profile",
+    "Removed the contact-card file import"
+  ]],
+  ["1.8.1","2026-11-16",[
+    "Your phone's keyboard now offers your own contacts in the name, phone and email fields",
+    "Paste a text or email signature and it pulls out the name, phone and email",
+    "Fixed: a stale copy of the add-person code was dropping who added whom"
+  ]],
   ["1.8.0","2026-11-16",[
     "Add a person from a shared contact card, phone and email included",
     "Show a QR code to invite someone standing next to you",
@@ -2012,17 +2036,36 @@ $("#tripName").onclick=()=>{
   document.querySelector('nav button[data-tab="trip"]').click();
   setTimeout(()=>$("#tripsBody").scrollIntoView({block:"center",behavior:"smooth"}),80);
 };
+function addMoreOpen(){return $("#addMore").style.display!=="none";}
+function setAddMore(on){
+  $("#addMore").style.display=on?"block":"none";
+  // one Add button at a time, and it sits after the last field they filled
+  $("#addPerson").style.display=on?"none":"";
+  $("#moreToggle").textContent=on?"Hide details":"Add details";
+}
 function addPerson(){
-  const n=$("#newPerson").value.trim();if(!n)return;
-  const id=uid();S.people[id]={id,name:n,madeBy:meId(),made:now(),upd:now(),by:meId()};
-  $("#newPerson").value="";save();
+  const n=$("#newPerson").value.trim();
+  if(!n)return toast("Give them a name first");
+  const more=addMoreOpen();
+  const rv=more?$("#newVenmo").value.trim():"";
+  const id=uid();
+  S.people[id]={id,name:n,madeBy:meId(),size:1,
+    phone:more?$("#newPhone").value.trim():"",
+    email:more?$("#newEmail").value.trim():"",
+    venmo:rv?(isScannedCode(rv)?rv:venmoHandle(rv)):"",
+    made:now(),upd:now(),by:meId()};
+  $("#newPerson").value="";
+  if(more){$("#newPhone").value="";$("#newEmail").value="";$("#newVenmo").value="";}
+  save();toast(`Added ${n}`);
 }
 $("#addPerson").onclick=addPerson;
-$("#importContact").onclick=()=>importContact(v=>{
+$("#addPerson2").onclick=addPerson;
+$("#moreToggle").onclick=()=>setAddMore(!addMoreOpen());
+$("#pastePerson").onclick=()=>pasteContact(v=>{
   const id=uid();
   S.people[id]={id,name:v.name||"New person",madeBy:meId(),size:1,
     phone:v.phone,email:v.email,made:now(),upd:now(),by:meId()};
-  save();toast(`Added ${v.name||"them"}`);
+  save();toast(`Added ${v.name||"them"} \u2014 check the details`);
   setTimeout(()=>openPerson2(id),200);
 });
 $("#newPerson").onkeydown=e=>{if(e.key==="Enter")addPerson();};
@@ -2033,14 +2076,14 @@ function openPerson2(id){
       <button id="edPic" style="position:relative">${avatar(id,"lg")}
         <span class="pplus">+</span></button>
     </div>
-    <label class="f"><span>Name</span><input id="edName" value="${esc(p.name)}" autocomplete="off"></label>
+    <label class="f"><span>Name</span><input id="edName" value="${esc(p.name)}" autocomplete="name"></label>
     <label class="f"><span>How many people is this?</span>
       <input id="edSize" inputmode="numeric" value="${p.size||1}"></label>
     <p class="note" style="margin:-8px 0 16px">Enter 2 for a couple settling together. Costs split per head, payments stay between households.</p>
     <label class="f"><span>Phone</span>
-      <input id="edPhone" type="tel" inputmode="tel" value="${esc(p.phone||"")}" placeholder="(555) 123-4567" autocomplete="off"></label>
+      <input id="edPhone" type="tel" inputmode="tel" value="${esc(p.phone||"")}" placeholder="(555) 123-4567" autocomplete="tel"></label>
     <label class="f"><span>Email</span>
-      <input id="edEmail" type="email" inputmode="email" value="${esc(p.email||"")}" placeholder="name@example.com" autocomplete="off"></label>
+      <input id="edEmail" type="email" inputmode="email" value="${esc(p.email||"")}" placeholder="name@example.com" autocomplete="email"></label>
     <label class="f"><span>Venmo</span>
       <div class="split2"><input id="edVenmo" value="${p.venmo?(isScannedCode(p.venmo)?esc(p.venmo):"@"+esc(venmoHandle(p.venmo))):""}" placeholder="@handle" autocomplete="off">
       <button class="btn ghost" style="flex:0 0 92px" id="edQr">Scan</button></div></label>
@@ -2050,7 +2093,7 @@ function openPerson2(id){
         ${p.phone?`<a class="btn ghost" style="text-decoration:none" id="edTextInv">Text them</a>`:""}
         ${p.email?`<a class="btn ghost" style="text-decoration:none" id="edMailInv">Email them</a>`:""}
       </div>`:""}
-    <button class="btn ghost" id="edFromContact" style="margin-bottom:10px">Fill from a contact card</button>
+    <button class="btn ghost" id="edPaste" style="margin-bottom:10px">Paste their info</button>
     <button class="btn teal" id="edSave" style="margin-bottom:10px">Save</button>
     <button class="btn danger" id="edDel">Remove from trip</button>`);
   const pick=(accept,cb)=>{
@@ -2069,17 +2112,18 @@ function openPerson2(id){
   });
   $("#edQr").onclick=()=>pick("image/*",f=>scanVenmoQR(f,id));
   if(sync){
-    const {subject,body}=inviteText();
+    const {subject,body}=inviteText(id);
     const tb=$("#edTextInv");if(tb)tb.href=telHref(p.phone,body);
     const mb=$("#edMailInv");
     if(mb)mb.href=`mailto:${encodeURIComponent(p.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   }
-  $("#edFromContact").onclick=()=>importContact(v=>{
+  const fillEditor=v=>{
     if(v.phone)$("#edPhone").value=v.phone;
     if(v.email)$("#edEmail").value=v.email;
     if(v.name&&!$("#edName").value.trim())$("#edName").value=v.name;
     toast("Filled in \u2014 check it, then Save");
-  });
+  };
+  $("#edPaste").onclick=()=>pasteContact(fillEditor);
   $("#edSave").onclick=()=>{
     const nm=$("#edName").value.trim();
     if(!nm)return toast("Give them a name");
@@ -2105,13 +2149,6 @@ $("#peopleBody").onclick=e=>{
   const b=e.target.closest("[data-edit-person]");
   if(b)openPerson2(b.dataset.editPerson);
 };
-function addPerson(){
-  const n=$("#newPerson").value.trim();if(!n)return;
-  const id=uid();S.people[id]={id,name:n,made:now(),upd:now(),by:meId()};
-  $("#newPerson").value="";save();
-}
-$("#addPerson").onclick=addPerson;
-$("#newPerson").onkeydown=e=>{if(e.key==="Enter")addPerson();};
 $("#wipe").onclick=async()=>{
   if(!await ask("Erase this trip?","Every expense and person on this phone. This cannot be undone.","Erase everything"))return;
   const keep=S.tripId;S=blank();S.tripId=keep;S.name="Trip";store.trips[keep]=S;sync=null;saveSync();stopStream();save();toast("Erased");
@@ -2392,18 +2429,21 @@ $("#openJoin").onclick=()=>{
     }catch(e){toast("That code didn't work");}
   };
 };
-function joinLink(code){
+function joinLink(code,pid){
   const base=location.origin+location.pathname.replace(/index\.html$/,"");
-  return `${base}#join=${code}`;
+  return `${base}#join=${code}${pid?`&me=${encodeURIComponent(pid)}`:""}`;
 }
-function inviteText(){
+function inviteText(pid){
   const code=enc(sync.host==="fb"
     ?{host:"fb",db:sync.db,path:sync.path,pass:sync.pass}
     :{bin:sync.bin,key:sync.shareKey||sync.key,hdr:sync.shareKey?"X-Access-Key":sync.hdr,pass:sync.pass});
-  const link=joinLink(code);
+  const link=joinLink(code,pid);
+  const who=pid&&S.people[pid]?S.people[pid].name:"";
   return {link,
     subject:`${S.name} \u2014 shared expenses`,
-    body:`You're invited to ${S.name}.\n\nTap this link to join:\n${link}\n\nIt opens the shared expense tracker, asks which name on the list is you, and lets you fill in your Venmo so everyone can settle up. Add it to your home screen and it behaves like an app.`};
+    body:who
+      ? `You're on the list for ${S.name} as ${who}.\n\nTap this link:\n${link}\n\nIt opens the shared expense tracker already pointed at your name \u2014 confirm it's you and add your Venmo so everyone can settle up. Add it to your home screen and it behaves like an app.`
+      : `You're invited to ${S.name}.\n\nTap this link to join:\n${link}\n\nIt opens the shared expense tracker, asks which name on the list is you, and lets you fill in your Venmo so everyone can settle up. Add it to your home screen and it behaves like an app.`};
 }
 function telHref(phone,body){
   // iOS wants sms:number&body=..., Android wants ?body=... — "&" works on both
@@ -2432,8 +2472,8 @@ function inviteSheet(){
           <span style="min-width:0"><div style="font-weight:600">${esc(p.name)}</div>
           <div class="note" style="margin:0;overflow:hidden;text-overflow:ellipsis">${p.phone||p.email?esc(p.phone||p.email):"no phone or email"}</div></span></span>
         <span style="display:flex;gap:6px;flex:none">
-          ${p.phone?`<a class="chip" style="text-decoration:none" href="${telHref(p.phone,body)}">Text</a>`:""}
-          ${p.email?`<a class="chip" style="text-decoration:none" href="mailto:${encodeURIComponent(p.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}">Email</a>`:""}
+          ${p.phone?`<a class="chip" style="text-decoration:none" href="${telHref(p.phone,inviteText(p.id).body)}">Text</a>`:""}
+          ${p.email?`<a class="chip" style="text-decoration:none" href="mailto:${encodeURIComponent(p.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(inviteText(p.id).body)}">Email</a>`:""}
           ${!p.phone&&!p.email?`<button class="chip" data-addcontact="${p.id}">Add contact</button>`:""}
         </span>
       </div>`).join("")}</div>`:""}
@@ -2471,7 +2511,7 @@ $("#shareCode").onclick=async()=>{
   catch(e){
     sheet2("Invite",`<p class="note" style="margin-bottom:12px">Press and hold to select all, then send it to the group.</p>
       <textarea readonly id="codeBox" style="width:100%;height:170px;font-size:13px;padding:12px;border:1px solid var(--line);border-radius:11px;background:var(--card)">${esc(txt)}</textarea>`);
-    setTimeout(()=>{const t=$("#codeBox");t.focus();t.setSelectionRange(0,t.value.length);},120);
+    setTimeout(()=>{const t=$("#codeBox");if(!t)return;t.focus();t.setSelectionRange(0,t.value.length);},120);
   }
 };
 $("#pullNow").onclick=()=>pull(false);
@@ -2541,66 +2581,46 @@ async function openQR(){
    iOS Safari has no Contact Picker API, so a shared .vcf is the only way in:
    Contacts -> Share Contact -> Save to Files, then pick the file here. Chrome
    on Android does have the picker, so use it when it is actually there. */
-function unfoldVcf(txt){return txt.replace(/\r\n/g,"\n").replace(/\n[ \t]/g,"");}
-function vcfValue(line){
-  const i=line.indexOf(":");
-  if(i<0)return "";
-  let v=line.slice(i+1).trim();
-  if(/ENCODING=QUOTED-PRINTABLE/i.test(line)){
-    // the escapes are UTF-8 bytes, so collect them and decode once — character
-    // by character turns "Jos=C3=A9" into "JosÃ©"
-    const bytes=[];
-    for(let i=0;i<v.length;i++){
-      if(v[i]==="="&&/^[0-9A-F]{2}$/i.test(v.substr(i+1,2))){bytes.push(parseInt(v.substr(i+1,2),16));i+=2;}
-      else bytes.push(v.charCodeAt(i)&0xFF);
-    }
-    try{v=new TextDecoder("utf-8").decode(new Uint8Array(bytes));}catch(e){}
+function parseContactText(txt){
+  const t=String(txt||"").replace(/\r/g,"");
+  if(!t.trim())return {name:"",phone:"",email:""};
+  const em=t.match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+/);
+  const email=em?em[0]:"";
+  // a phone is 7-15 digits, optionally +prefixed, with spaces/dashes/dots/parens between
+  let phone="";
+  for(const m of t.matchAll(/\+?\(?\d[\d\s().\-]{5,18}\d/g)){
+    const digits=m[0].replace(/\D/g,"");
+    if(digits.length<7||digits.length>15)continue;
+    // skip anything sitting inside an email address
+    if(email&&email.indexOf(m[0].trim())>=0)continue;
+    phone=m[0].trim();break;
   }
-  return v;
-}
-function parseVcf(txt){
-  const lines=unfoldVcf(txt).split("\n");
-  let name="",phone="",email="",nParts=null;
-  for(const l of lines){
-    const key=l.split(/[;:]/)[0].toUpperCase();
-    if(key==="FN"&&!name)name=vcfValue(l);
-    else if(key==="N"&&!nParts)nParts=vcfValue(l).split(";");
-    else if(key==="TEL"&&!phone)phone=vcfValue(l);
-    else if(key==="EMAIL"&&!email)email=vcfValue(l);
+  let name="";
+  for(const raw of t.split("\n")){
+    const l=raw.replace(/^[\s*>\-\u2022]+/,"").trim();
+    if(!l||l.length>48)continue;
+    if(/[@\d]/.test(l))continue;
+    if(/^(mobile|cell|phone|tel|fax|home|work|iphone|main|other|email|e-mail|contact|name|thanks|thank you|thx|regards|best|cheers|sincerely|dear|hi|hello|hey|sent from|from|to|cc|subject|fyi|ps)\b/i.test(l))continue;
+    const words=l.split(/\s+/);
+    if(words.length>4)continue;
+    if(!/[A-Za-z]{2}/.test(l))continue;
+    name=l.replace(/[,;:]+$/,"");break;
   }
-  if(!name&&nParts)name=[nParts[1],nParts[0]].filter(Boolean).join(" ").trim();
-  return {name:name.trim(),phone:phone.trim(),email:email.trim()};
+  return {name,phone,email};
 }
-function pickFile(accept,cb){
-  const i=document.createElement("input");
-  i.type="file";i.accept=accept;i.style.display="none";
-  document.body.appendChild(i);
-  i.onchange=e=>{const f=e.target.files[0];i.remove();if(f)cb(f);};
-  i.click();
-}
-function importContact(cb){
-  // Android Chrome can open the real picker
-  if(navigator.contacts&&navigator.contacts.select){
-    navigator.contacts.select(["name","tel","email"],{multiple:false})
-      .then(r=>{
-        if(!r||!r.length)return;
-        const c=r[0];
-        cb({name:(c.name&&c.name[0])||"",phone:(c.tel&&c.tel[0])||"",email:(c.email&&c.email[0])||""});
-      }).catch(()=>{});
+function pasteContact(cb){
+  const take=txt=>{
+    const v=parseContactText(txt);
+    if(!v.name&&!v.phone&&!v.email)return toast("Nothing to read in that text");
+    cb(v);
+  };
+  if(navigator.clipboard&&navigator.clipboard.readText){
+    navigator.clipboard.readText().then(take)
+      .catch(()=>toast("Copy their info first, then tap this again"));
     return;
   }
-  pickFile(".vcf,text/vcard,text/x-vcard",f=>{
-    const r=new FileReader();
-    r.onload=()=>{
-      const v=parseVcf(String(r.result||""));
-      if(!v.name&&!v.phone&&!v.email)return toast("Couldn't read that contact file");
-      cb(v);
-    };
-    r.onerror=()=>toast("Couldn't read that file");
-    r.readAsText(f);
-  });
+  toast("Long-press a field and Paste instead");
 }
-
 /* ---------------- Venmo QR codes ---------------- */
 let jsqr=null;
 function loadJsQR(){
@@ -3446,6 +3466,18 @@ $("#verLine").onclick=()=>{
 /* ---------------- boot ---------------- */
 /* After joining, the newcomer says who they are and drops in their own payment
    details. Without this the organiser has to chase everyone for Venmo handles. */
+function phoneKey(v){
+  const d=String(v||"").replace(/\D/g,"");
+  return d.length>=7?d.slice(-10):"";
+}
+function emailKey(v){return String(v||"").trim().toLowerCase();}
+// someone typing their own number into "I'm not listed" is usually already on the list
+function matchPerson(phone,email,skipId){
+  const pk=phoneKey(phone), ek=emailKey(email);
+  if(!pk&&!ek)return null;
+  return people().find(p=>p.id!==skipId&&
+    ((pk&&phoneKey(p.phone)===pk)||(ek&&emailKey(p.email)===ek)))||null;
+}
 function missingBits(p){
   const m=[];
   if(!p.venmo)m.push("Venmo");
@@ -3484,11 +3516,12 @@ function claimStep(id){
     <p class="note" style="margin:0 0 14px">${miss.length
       ? `Still needed: <b>${esc(miss.join(", "))}</b>. Your Venmo handle is what lets everyone settle up with one tap.`
       : `Everything's filled in. Change anything that's wrong.`}</p>
-    ${p?"":`<label class="f"><span>Your name</span><input id="wmName" placeholder="Name, or a couple" autocomplete="off"></label>
+    ${p?"":`<label class="f"><span>Your name</span><input id="wmName" placeholder="Name, or a couple" autocomplete="name"></label>
       <label class="f"><span>How many people is this?</span><input id="wmSize" inputmode="numeric" value="1"></label>`}
     <label class="f"><span>Venmo</span><input id="wmVenmo" placeholder="@handle" autocomplete="off"></label>
-    <label class="f"><span>Phone</span><input id="wmPhone" type="tel" inputmode="tel" placeholder="Optional" autocomplete="off"></label>
-    <label class="f"><span>Email</span><input id="wmEmail" type="email" inputmode="email" placeholder="Optional" autocomplete="off"></label>
+    <label class="f"><span>Phone</span><input id="wmPhone" type="tel" inputmode="tel" placeholder="Optional" autocomplete="tel"></label>
+    <div id="wmMatch"></div>
+    <label class="f"><span>Email</span><input id="wmEmail" type="email" inputmode="email" placeholder="Optional" autocomplete="email"></label>
     <button class="btn teal" id="wmSave" style="margin-bottom:9px">${p?"This is me — save":"Add me to the trip"}</button>
     <button class="btn ghost" id="wmBack">Back</button>`);
   if(p){
@@ -3496,6 +3529,22 @@ function claimStep(id){
     $("#wmPhone").value=p.phone||"";
     $("#wmEmail").value=p.email||"";
   }
+  const mbox=$("#wmMatch");
+  let matched=null;
+  const checkMatch=()=>{
+    if(!mbox)return;
+    const hit=matchPerson($("#wmPhone").value,$("#wmEmail").value,id);
+    if(hit&&hit.id===(matched&&matched.id))return;
+    matched=hit;
+    if(!hit){mbox.innerHTML="";return;}
+    mbox.innerHTML=`<div class="warn" style="margin-bottom:14px">
+      That matches <b>${esc(hit.name)}</b>, already on the trip.
+      <button class="btn ghost" id="wmTakeOver" style="margin-top:9px">Use that profile instead</button></div>`;
+    $("#wmTakeOver").onclick=()=>claimStep(hit.id);
+    try{mbox.scrollIntoView({block:"nearest",behavior:"smooth"});}catch(e){}
+  };
+  ["wmPhone","wmEmail"].forEach(f=>{const el=$("#"+f);if(el)el.oninput=checkMatch;});
+  checkMatch();
   $("#wmBack").onclick=openWelcome;
   $("#wmSave").onclick=()=>{
     let pid=id;
@@ -3524,6 +3573,8 @@ function claimStep(id){
 async function joinFromLink(){
   const m=(location.hash||"").match(/[#&]join=([A-Za-z0-9+/=_-]+)/);
   if(!m)return false;
+  const mm=(location.hash||"").match(/[#&]me=([A-Za-z0-9_-]+)/);
+  const target=mm?decodeURIComponent(mm[1]):null;
   history.replaceState(null,"",location.pathname+location.search);
   let o;try{o=dec(m[1]);}catch(e){toast("That invite link was incomplete");return false;}
   if(!(o.host==="fb"?(o.db&&o.path):(o.bin&&o.key))){toast("That invite link didn't work");return false;}
@@ -3536,7 +3587,11 @@ async function joinFromLink(){
   sync=o;saveSync();startStream();persist();
   await pull(false);render();
   document.querySelector('nav button[data-tab="log"]').click();
-  setTimeout(openWelcome,450);   // collect their Venmo while they are paying attention
+  // a targeted link lands them on their own profile; forwarded links still get the list
+  setTimeout(()=>{
+    if(target&&S.people[target]&&!S.people[target].del)claimStep(target);
+    else openWelcome();
+  },450);
   return true;
 }
 render();
