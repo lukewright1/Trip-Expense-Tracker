@@ -1,7 +1,7 @@
 /* Trip Split — offline cache.
    CACHE tracks the app version shown on the Trip screen. Network-first, so a
    fresh upload always wins; the cache is only the offline fallback. */
-const CACHE = "tripsplit-1.0.0";
+const CACHE = "tripsplit-1.1.0";
 const ASSETS = ["./", "./index.html"];
 
 self.addEventListener("install", e => {

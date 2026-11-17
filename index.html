@@ -345,6 +345,9 @@ nav button.on::before{content:"";position:absolute;top:0;left:50%;transform:tran
       <div class="n money" id="tripTotal">0</div>
       <div class="l" id="totLabel">total spent</div>
     </div>
+    <button class="shareBtn" id="actBtn" aria-label="Activity" style="margin-right:-2px">
+      <svg viewBox="0 0 24 24" style="width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round">
+        <circle cx="12" cy="12" r="8.4"/><path d="M12 7.3V12l3.2 1.9"/></svg></button>
     <button class="shareBtn" id="shareBtn" aria-label="Share">↗</button>
   </div>
 </header>
@@ -618,8 +621,14 @@ const CURRENCIES=[
 const curInfo=c=>CURRENCIES.find(x=>x[0]===String(c||"").toUpperCase());
 const curName=c=>{const i=curInfo(c);return i?i[1]:c;};
 const CATS=[["🍽️","Food"],["🍸","Drinks"],["🛒","Groceries"],["⛽","Fuel"],["⚓","Mooring"],["🛥️","Charter"],["🚕","Transport"],["🏨","Lodging"],["🎟️","Activity"],["💶","Other"]];
-const VERSION="1.0.0", BUILT="2026-11-16";
+const VERSION="1.1.0", BUILT="2026-11-16";
 const CHANGES=[
+  ["1.1.0","2026-11-16",[
+    "Activity feed \u2014 who added, edited or settled what, and when",
+    "Expenses show who entered them",
+    "Conflicts no longer resolve by a possibly-wrong device clock",
+    "Venmo notes no longer arrive full of + signs"
+  ]],
   ["1.0.0","2026-11-16",[
     "Settled payments stay listed, with undo and editable amounts",
     "Edit moved to the top of an expense",
@@ -630,7 +639,24 @@ const CHANGES=[
 ];
 const LS="tripsplit.v1", LSYNC="tripsplit.sync.v1", LSTORE="tripsplit.trips.v1";
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
-const now=()=>Date.now();
+/* Merge resolves conflicts by comparing timestamps, so a device with a wrong
+   clock could win or lose every conflict forever. This keeps a counter that
+   only ever moves forward and never falls behind anything we have seen, so a
+   slow clock catches up instead of being permanently outvoted. */
+const LHI="tripsplit.clock.v1";
+let clockHi=(()=>{try{return +localStorage.getItem(LHI)||0;}catch(e){return 0;}})();
+function noteClock(v){
+  v=+v||0;
+  // A peer whose clock is set years ahead would otherwise drag this counter with
+  // it forever, so anything more than a day ahead of local time is ignored.
+  if(v>Date.now()+864e5)return;
+  if(v>clockHi){clockHi=v;try{localStorage.setItem(LHI,String(clockHi));}catch(e){}}
+}
+const now=()=>{
+  clockHi=Math.max(clockHi+1,Date.now());
+  try{localStorage.setItem(LHI,String(clockHi));}catch(e){}
+  return clockHi;
+};
 const $=s=>document.querySelector(s);
 
 /* ---------------- state ---------------- */
@@ -1001,13 +1027,79 @@ function openPayment(id){
     if(c<=0)return toast("Enter an amount");
     const to2=(S.items[id].with||[])[0];
     S.items[id]={...S.items[id],cents:c,parts:{[to2]:c},paid:{[S.items[id].payer]:c},
-      date:$("#payDate").value||S.items[id].date,upd:now()};
+      date:$("#payDate").value||S.items[id].date,upd:now(),by:meId()};
     save();$("#sheet2").classList.remove("on");toast("Payment updated");
   };
   $("#payUndo").onclick=async()=>{
     if(!await ask("Mark unsettled?",`${nameOf(from)} \u2192 ${nameOf(to)} for ${fmtD(p.cents)} will be removed and the balance restored.`,"Mark unsettled"))return;
-    S.items[id]={...S.items[id],del:true,upd:now()};
+    S.items[id]={...S.items[id],del:true,upd:now(),by:meId()};
     save();$("#sheet2").classList.remove("on");toast("Back on the list");
+  };
+}
+function agoShort(ts){
+  const sdiff=Math.max(0,Math.round((Date.now()-ts)/1000));
+  if(sdiff<60)return "just now";
+  const m=Math.round(sdiff/60); if(m<60)return m+"m ago";
+  const hr=Math.round(m/60);    if(hr<24)return hr+"h ago";
+  const d=Math.round(hr/24);    if(d<7)return d+"d ago";
+  return new Date(ts).toLocaleDateString(undefined,{day:"numeric",month:"short"});
+}
+function activity(){
+  const ev=[];
+  const fresh=r=>Math.abs((r.upd||0)-(r.made||0))<3;   // saved once, never edited
+  Object.values(S.items||{}).forEach(it=>{
+    const t=it.upd||it.made||0;
+    const who=it.del?it.by:(fresh(it)?(it.madeBy||it.by):it.by);
+    ev.push({t,who,kind:it.del?"del":(fresh(it)?"add":"edit"),it});
+  });
+  Object.values(S.people||{}).forEach(p=>{
+    const t=p.upd||p.made||0;
+    ev.push({t,who:p.del?p.by:(fresh(p)?(p.madeBy||p.by):p.by),
+      kind:p.del?"pdel":(fresh(p)?"padd":"pedit"),p});
+  });
+  return ev.sort((a,b)=>b.t-a.t).slice(0,80);
+}
+function evLine(e){
+  const nm=x=>esc(x||"Expense");
+  if(e.p){
+    const n=`<b>${esc(e.p.name)}</b>`;
+    return e.kind==="padd"?`added ${n} to the trip`
+         : e.kind==="pdel"?`removed ${n} from the trip`
+         : `updated ${n}`;
+  }
+  const it=e.it, amt=`<span class="money">${fmtD(it.cents)}</span>`;
+  if(it.kind==="pay"){
+    const to=(it.with||[])[0];
+    return e.kind==="del"?`un-settled a payment to <b>${esc(nameOf(to))}</b>`
+         : e.kind==="add"?`settled up with <b>${esc(nameOf(to))}</b> \u00b7 ${amt}`
+         : `changed a payment to <b>${esc(nameOf(to))}</b> \u00b7 ${amt}`;
+  }
+  const d=`<b>${nm(it.desc)}</b>`;
+  return e.kind==="del"?`deleted ${d}`
+       : e.kind==="add"?`added ${d} \u00b7 ${amt}`
+       : `edited ${d} \u00b7 ${amt}`;
+}
+function openActivity(){
+  const ev=activity();
+  const me=meId();
+  sheet2("Activity",ev.length?`
+    <p class="note" style="margin:0 0 14px">Most recent change to each entry, newest first.</p>
+    <div class="card">${ev.map(e=>{
+      const who=e.who&&S.people[e.who];
+      const nameTxt=who?esc(who.name)+(e.who===me?" (you)":""):"Someone";
+      const icon=who?avatar(e.who,"sm"):`<span class="av sm" style="background:var(--muted)">?</span>`;
+      const tap=e.it&&!e.it.del?` data-act-open="${e.it.id}"`:"";
+      return `<${tap?"button":"div"} class="item" style="width:100%;text-align:left"${tap}>
+        ${icon}
+        <div class="mid"><div class="t" style="font-weight:500;white-space:normal">${nameTxt} ${evLine(e)}</div>
+        <div class="s">${agoShort(e.t)}</div></div>
+      </${tap?"button":"div"}>`;}).join("")}</div>
+    ${ev.some(e=>!e.who)?`<p class="note">Entries made before anyone set a default payer show as "Someone". Set yours under <b>Trip</b> so your changes are labelled.</p>`:""}`
+    :`<div class="empty"><h3>Nothing yet</h3><p>Every add, edit and settle-up shows up here with who made it.</p></div>`);
+  $("#sheet2Body").onclick=e=>{
+    const b=e.target.closest("[data-act-open]");if(!b)return;
+    $("#sheet2").classList.remove("on");
+    setTimeout(()=>openDetail(b.dataset.actOpen),160);
   };
 }
 function renderPeople(){
@@ -1078,12 +1170,12 @@ function openSheet(id){
   if(!people().length){toast("Add people under Trip first");return;}
   const ex=id?S.items[id]:null;
   draft=ex?JSON.parse(JSON.stringify(ex)):{
-    id:uid(),kind:"exp",desc:"",cents:0,cur:S.cur,cat:"🍽️",
+    id:uid(),kind:"exp",madeBy:meId(),desc:"",cents:0,cur:S.cur,cat:"🍽️",
     payers:[meId()||people()[0].id],paid:{},
     with:people().map(p=>p.id),
     mode:people().some(p=>(p.size||1)>1)?"shares":"equal",
     parts:Object.fromEntries(people().map(p=>[p.id,p.size||1])),
-    date:new Date().toISOString().slice(0,10),made:now(),upd:now()
+    date:new Date().toISOString().slice(0,10),made:now(),upd:now(),by:meId()
   };
   if(!draft.payers||!draft.payers.length){
     const pm=paidMap(draft);
@@ -1286,7 +1378,7 @@ $("#saveItem").onclick=()=>{
 $("#delItem").onclick=async()=>{
   const d=draft;
   if(!await ask("Delete this expense?",d.desc||"","Delete"))return;
-  S.items[d.id]={...d,del:true,upd:now()};closeSheet();save();toast("Deleted");
+  S.items[d.id]={...d,del:true,upd:now(),by:meId()};closeSheet();save();toast("Deleted");
   dropReceipt(d.id);
 };
 /* swipe-to-reveal on log rows */
@@ -1343,7 +1435,7 @@ $("#logBody").onclick=async e=>{
     const it=S.items[dl.dataset.swDel];if(!it)return;
     document.querySelectorAll(".swipe.open").forEach(r=>r.classList.remove("open"));
     if(!await ask("Delete this expense?",`${it.desc||"Expense"} \u2014 ${fmtD(it.cents)}. Everyone on the trip loses it.`,"Delete"))return;
-    S.items[it.id]={...it,del:true,upd:now()};save();
+    S.items[it.id]={...it,del:true,upd:now(),by:meId()};save();
     undoToast(it);
     return;
   }
@@ -1360,7 +1452,7 @@ function undoToast(it){
   const go=ev=>{
     ev.preventDefault();ev.stopPropagation();
     clearTimeout(t._t);
-    S.items[it.id]={...it,del:false,upd:now()};
+    S.items[it.id]={...it,del:false,upd:now(),by:meId()};
     save();
     toast("Restored");
   };
@@ -1385,7 +1477,7 @@ $("#paidBody").onclick=async e=>{
   const p=S.items[un.dataset.unpay];if(!p)return;
   const from=p.payer,to=(p.with||[])[0];
   if(!await ask("Mark unsettled?",`${nameOf(from)} \u2192 ${nameOf(to)} for ${fmtD(p.cents)} goes back on the list above.`,"Mark unsettled"))return;
-  S.items[p.id]={...p,del:true,upd:now()};save();toast("Back on the list");
+  S.items[p.id]={...p,del:true,upd:now(),by:meId()};save();toast("Back on the list");
 };
 $("#settleBody").onclick=async e=>{
   const vp=e.target.closest("[data-venmopay]");
@@ -1399,7 +1491,9 @@ $("#settleBody").onclick=async e=>{
     const rawV=(S.people[other].venmo||"").trim();
     if(!rawV)return toast(`Add ${nameOf(other)}'s Venmo handle under People first`);
     const amt=(usd/100).toFixed(2);
-    const note=encodeURIComponent(`${S.name} - settling up`);
+    // Venmo turns encoded spaces into "+" and prints them literally in the note,
+    // so the note is slugged to hyphens — readable, and nothing to re-encode.
+    const note=`${S.name} settle up`.replace(/[^A-Za-z0-9]+/g,"-").replace(/^-+|-+$/g,"").slice(0,60);
     if(isScannedCode(rawV)){
       // a user_id QR identifies the person but carries no username, and the
       // payment parameters only bind to a username — nothing can be prefilled
@@ -1424,9 +1518,9 @@ $("#settleBody").onclick=async e=>{
   const line=sc===S.cur?fmt(+v):`${fmt(toDisp(+v),sc)} (${fmt(+v)})`;
   if(!await ask("Mark as settled?",`${nameOf(from)} paid ${nameOf(to)} ${line}.`,"Mark settled"))return;
   const id=uid();
-  S.items[id]={id,kind:"pay",desc:`Settle up — ${nameOf(from)} → ${nameOf(to)}`,cents:+v,cur:S.cur,cat:"🤝",
+  S.items[id]={id,kind:"pay",madeBy:meId(),desc:`Settle up — ${nameOf(from)} → ${nameOf(to)}`,cents:+v,cur:S.cur,cat:"🤝",
     payer:from,payers:[from],paid:{[from]:+v},with:[to],mode:"exact",parts:{[to]:+v},
-    date:new Date().toISOString().slice(0,10),made:now(),upd:now()};
+    date:new Date().toISOString().slice(0,10),made:now(),upd:now(),by:meId()};
   save();toast("Marked settled");
 };
 
@@ -1490,7 +1584,7 @@ function addTrip(){
   const t=blank();t.name=nm;
   if(carry){
     t.cur=S.cur;t.alt=S.alt;t.rate=S.rate;t.dispCur=S.dispCur;
-    people().forEach(p=>t.people[p.id]={id:p.id,name:p.name,size:p.size||1,made:p.made,upd:now()});
+    people().forEach(p=>t.people[p.id]={id:p.id,name:p.name,size:p.size||1,made:p.made,upd:now(),by:meId()});
   }
   store.trips[t.tripId]=t;$("#newTrip").value="";
   switchTrip(t.tripId);
@@ -1503,7 +1597,7 @@ $("#tripName").onclick=()=>{
 };
 function addPerson(){
   const n=$("#newPerson").value.trim();if(!n)return;
-  const id=uid();S.people[id]={id,name:n,made:now(),upd:now()};
+  const id=uid();S.people[id]={id,name:n,madeBy:meId(),made:now(),upd:now(),by:meId()};
   $("#newPerson").value="";save();
 }
 $("#addPerson").onclick=addPerson;
@@ -1536,7 +1630,7 @@ function openPerson2(id){
     const d=await openCropper(f,{round:true,out:200,q:.62,
       title:"Frame the face",hint:"Drag to move · pinch to zoom"});
     if(!d)return;
-    S.people[id]={...S.people[id],pic:d,upd:now()};save();
+    S.people[id]={...S.people[id],pic:d,upd:now(),by:meId()};save();
     $("#sheet2").classList.remove("on");toast("Photo updated");
   });
   $("#edQr").onclick=()=>pick("image/*",f=>scanVenmoQR(f,id));
@@ -1546,7 +1640,7 @@ function openPerson2(id){
     const rv=$("#edVenmo").value.trim();
     const clean=isScannedCode(rv)?rv:venmoHandle(rv);
     S.people[id]={...S.people[id],name:nm,size:Math.max(1,parseInt($("#edSize").value)||1),
-      venmo:clean,upd:now()};
+      venmo:clean,upd:now(),by:meId()};
     save();$("#sheet2").classList.remove("on");toast("Saved");
   };
   $("#edDel").onclick=async()=>{
@@ -1554,7 +1648,7 @@ function openPerson2(id){
     if(!await ask(`Remove ${nameOf(id)}?`,
       used?"They're on existing expenses. Those stay in the log and their share spreads across whoever is left."
           :"They'll be taken off this trip.","Remove"))return;
-    S.people[id]={...S.people[id],del:true,upd:now()};
+    S.people[id]={...S.people[id],del:true,upd:now(),by:meId()};
     if(meId()===id)setMe(null);
     save();$("#sheet2").classList.remove("on");toast("Removed");
   };
@@ -1565,7 +1659,7 @@ $("#peopleBody").onclick=e=>{
 };
 function addPerson(){
   const n=$("#newPerson").value.trim();if(!n)return;
-  const id=uid();S.people[id]={id,name:n,made:now(),upd:now()};
+  const id=uid();S.people[id]={id,name:n,made:now(),upd:now(),by:meId()};
   $("#newPerson").value="";save();
 }
 $("#addPerson").onclick=addPerson;
@@ -1595,6 +1689,8 @@ $("#fileIn").onchange=e=>{
 /* ---------------- merge (last-write-wins per record) ---------------- */
 function merge(a,b){
   if(!b||!b.people)return a;
+  noteClock(b.metaUpd);
+  ["people","items"].forEach(k=>{for(const id in (b[k]||{}))noteClock(b[k][id].upd);});
   const out={...a};
   if((b.metaUpd||0)>(a.metaUpd||0)){out.name=b.name;out.cur=b.cur;out.alt=b.alt;out.rate=b.rate;out.dispCur=b.dispCur;out.metaUpd=b.metaUpd;}
   ["people","items"].forEach(k=>{
@@ -1920,7 +2016,7 @@ async function scanVenmoQR(file,personId){
     const v=venmoFromQR(r.data);
     if(!v)return toast("That code isn't a Venmo profile");
     const p=S.people[personId];
-    S.people[p.id]={...p,venmo:v,upd:now()};save();
+    S.people[p.id]={...p,venmo:v,upd:now(),by:meId()};save();
     toast(/^https?:/.test(v)?"Venmo profile linked":`Got @${v}`);
   }catch(e){toast("Couldn't load the code reader \u2014 needs a connection once");}
 }
@@ -2405,6 +2501,10 @@ function openDetail(id){
       <div class="note" style="margin-top:10px">${new Date(it.date+"T12:00").toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"})}
         · ${splitLabel(it)}${heads?` across ${heads} ${heads===1?"person":"people"}`:""}
         · ${nPay===1?"one payer":nPay+" payers"}</div>
+      ${(it.madeBy||it.by)?`<div class="note" style="margin-top:8px;display:flex;align-items:center;gap:8px">
+        ${avatar(it.madeBy||it.by,"sm")}
+        <span>Added by ${esc(nameOf(it.madeBy||it.by))}${it.by&&it.madeBy&&it.by!==it.madeBy?` \u00b7 last edited by ${esc(nameOf(it.by))}`:""} \u00b7 ${agoShort(it.upd||it.made)}</span>
+      </div>`:""}
     </div>
 
     <div class="eyebrow" style="margin-top:0">Who put the money down</div>
@@ -2580,6 +2680,7 @@ async function doShare(text,title){
   sheet2(title,`<p class="note" style="margin-bottom:12px">Press and hold to select all, then copy.</p>
     <textarea readonly id="codeBox" style="width:100%;height:52vh;font-size:13px;padding:12px;border:1px solid var(--line);border-radius:11px;background:var(--card)">${esc(text)}</textarea>`);
 }
+$("#actBtn").onclick=openActivity;
 $("#shareBtn").onclick=()=>{
   if(!items().length){toast("Nothing to share yet");return;}
   sheet2("Share",`
