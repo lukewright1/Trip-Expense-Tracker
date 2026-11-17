@@ -347,7 +347,7 @@ nav button.on::before{content:"";position:absolute;top:0;left:50%;transform:tran
   font-size:16px;line-height:1;display:grid;place-items:center;flex:none;box-shadow:var(--e1);
   transition:transform .12s}
 .x:active{transform:scale(.93)}
-.pbody{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 16px calc(20px + env(safe-area-inset-bottom))}
+.pbody{flex:1;overflow-y:auto;overflow-anchor:none;-webkit-overflow-scrolling:touch;padding:16px 16px calc(20px + env(safe-area-inset-bottom))}
 .pfoot{flex:none;padding:12px 16px calc(12px + env(safe-area-inset-bottom));
   border-top:1px solid var(--line-soft);background:var(--card);box-shadow:var(--e-up)}
 .big{font-size:36px !important;font-weight:700;font-family:var(--font);text-align:center;
@@ -484,8 +484,6 @@ nav button.on::before{content:"";position:absolute;top:0;left:50%;transform:tran
         <input id="newPerson" placeholder="Add a name or couple" autocomplete="name">
         <button class="btn teal" style="flex:0 0 88px" id="addPerson">Add</button>
       </div>
-      <button class="btn ghost" id="pastePerson" style="margin-top:10px">Paste details</button>
-      <div id="pasteSlot"></div>
       <div class="note" style="margin-top:7px">Add the name, then fill in phone, email and Venmo on the next step.</div>
       <div class="btnrow" style="margin-top:9px">
         <button class="btn ghost" id="invitePeople">Invite by text or email</button>
@@ -718,8 +716,16 @@ const CURRENCIES=[
 const curInfo=c=>CURRENCIES.find(x=>x[0]===String(c||"").toUpperCase());
 const curName=c=>{const i=curInfo(c);return i?i[1]:c;};
 const CATS=[["🍽️","Food"],["🍸","Drinks"],["🛒","Groceries"],["⛽","Fuel"],["⚓","Mooring"],["🛥️","Charter"],["🚕","Transport"],["🏨","Lodging"],["🎟️","Activity"],["💶","Other"]];
-const VERSION="1.10.0", BUILT="2026-11-16";
+const VERSION="1.11.0", BUILT="2026-11-16";
 const CHANGES=[
+  ["1.11.0","2026-11-16",[
+    "Texting is now the first thing on the invite screen",
+    "Text everyone at once in one group message",
+    "Email, QR and AirDrop moved under Other ways"
+  ]],
+  ["1.10.1","2026-11-16",[
+    "Removed Paste details \u2014 the add step asks for everything anyway"
+  ]],
   ["1.10.0","2026-11-16",[
     "A Text button on each person's row sends them their own join link",
     "Adding a name goes straight on to phone, email, Venmo and a photo",
@@ -2062,17 +2068,6 @@ function addPerson(){
 }
 $("#addPerson").onclick=addPerson;
 
-$("#pasteSlot").innerHTML=pasteBoxHtml("pasteBox","pasteTa","pasteOut","pasteUse");
-wirePasteBox("pasteBox","pasteTa","pasteOut","pasteUse",v=>{
-  $("#pastePerson").textContent="Paste details";
-  newPerson({name:v.name||"New person",phone:v.phone||"",email:v.email||""});
-});
-$("#pastePerson").onclick=()=>{
-  const b=$("#pasteBox"), on=b.style.display!=="none";
-  b.style.display=on?"none":"block";
-  $("#pastePerson").textContent=on?"Paste details":"Hide paste box";
-  if(!on)setTimeout(()=>$("#pasteTa").focus(),60);
-};
 $("#newPerson").onkeydown=e=>{if(e.key==="Enter")addPerson();};
 function openPerson2(id,fresh){
   const p=S.people[id];if(!p)return;
@@ -2099,8 +2094,6 @@ function openPerson2(id,fresh){
         ${p.phone?`<a class="btn ghost" style="text-decoration:none" id="edTextInv">Text them</a>`:""}
         ${p.email?`<a class="btn ghost" style="text-decoration:none" id="edMailInv">Email them</a>`:""}
       </div>`:""}
-    <button class="btn ghost" id="edPaste" style="margin-bottom:10px">Paste details</button>
-    ${pasteBoxHtml("edPasteBox","edPasteTa","edPasteOut","edPasteUse")}
     <button class="btn teal" id="edSave" style="margin-bottom:10px">Save</button>
     <button class="btn danger" id="edDel">Remove from trip</button>`);
   const pick=(accept,cb)=>{
@@ -2124,19 +2117,6 @@ function openPerson2(id,fresh){
     const mb=$("#edMailInv");
     if(mb)mb.href=`mailto:${encodeURIComponent(p.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   }
-  const fillEditor=v=>{
-    if(v.phone)$("#edPhone").value=v.phone;
-    if(v.email)$("#edEmail").value=v.email;
-    if(v.name&&!$("#edName").value.trim())$("#edName").value=v.name;
-    toast("Filled in \u2014 check it, then Save");
-  };
-  wirePasteBox("edPasteBox","edPasteTa","edPasteOut","edPasteUse",fillEditor);
-  $("#edPaste").onclick=()=>{
-    const b=$("#edPasteBox"), on=b.style.display!=="none";
-    b.style.display=on?"none":"block";
-    $("#edPaste").textContent=on?"Paste details":"Hide paste box";
-    if(!on)setTimeout(()=>$("#edPasteTa").focus(),60);
-  };
   const delBtn=$("#edDel");
   if(fresh&&delBtn)delBtn.textContent="Cancel \u2014 don't add them";
   $("#edSave").onclick=()=>{
@@ -2368,7 +2348,12 @@ function dec(s){
 
 function sheet2(title,html,action){
   $("#sheet2Title").textContent=title;
-  $("#sheet2Body").innerHTML=html;
+  const body=$("#sheet2Body");
+  body.innerHTML=html;
+  // the container keeps the last sheet's scroll, and anchoring restores it
+  // after layout, so clear it again on the next frame
+  body.scrollTop=0;
+  requestAnimationFrame(()=>{body.scrollTop=0;});
   const slot=$("#sheet2Act");
   slot.innerHTML=action||"";
   slot.style.display=action?"":"none";
@@ -2471,6 +2456,11 @@ function telHref(phone,body){
   const n=String(phone||"").replace(/[^\d+]/g,"");
   return `sms:${n}${n?"&":"?&"}body=${encodeURIComponent(body)}`;
 }
+// RFC 5724 allows a comma-separated recipient list; iOS and Android both take it
+function telHrefAll(phones,body){
+  const list=phones.map(x=>String(x||"").replace(/[^\d+]/g,"")).filter(Boolean).join(",");
+  return `sms:${list}${list?"&":"?&"}body=${encodeURIComponent(body)}`;
+}
 function inviteSheet(){
   if(!sync)return toast("Turn on sync first so there's something to join");
   const {subject,body}=inviteText();
@@ -2478,15 +2468,15 @@ function inviteSheet(){
   const mails=ps.filter(p=>p.email);
   const reachable=ps.filter(p=>p.email||p.phone);
   const mailAll=mails.length?`mailto:?bcc=${encodeURIComponent(mails.map(p=>p.email).join(","))}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`:"";
+  const texts=ps.filter(p=>p.phone);
+  const textAll=texts.length?telHrefAll(texts.map(p=>p.phone),body):"";
   sheet2("Invite the group",`
-    <p class="note" style="margin:0 0 16px">The link joins them straight in — nothing to paste, and it asks for their Venmo once they're there.</p>
-    ${mailAll?`<div class="eyebrow" style="margin-top:0">Everyone at once</div>
-      <a class="btn teal" href="${mailAll}" style="margin-bottom:9px;text-decoration:none">Email ${mails.length} ${mails.length===1?"person":"people"}</a>`:""}
-    <div class="btnrow" style="margin:0 0 4px">
-      <button class="btn ghost" id="invQR">Show QR code</button>
-      <button class="btn ghost" id="invShare">AirDrop or share</button>
-    </div>
-    <div class="eyebrow">One at a time</div>
+    <p class="note" style="margin:0 0 16px">Every link joins them straight in — nothing to paste, and it asks for their Venmo once they're there.</p>
+    <div class="eyebrow" style="margin-top:0">Text them</div>
+    ${textAll?`<a class="btn teal" href="${textAll}" style="margin-bottom:7px;text-decoration:none">Text ${texts.length} ${texts.length===1?"person":"people"} at once</a>
+      <p class="note" style="margin:0 0 14px">One group message. Everyone picks their own name when they open it.</p>`
+    :`<p class="note" style="margin:0 0 14px">Nobody has a phone number saved yet. Add one to a person and this becomes a one-tap group text.</p>`}
+    <div class="eyebrow">Or text them one by one</div>
     ${ps.length?`<div class="card">${ps.map(p=>`
       <div class="row" style="padding:11px 14px">
         <span style="display:flex;align-items:center;gap:10px;min-width:0;flex:1">${avatar(p.id,"sm")}
@@ -2498,7 +2488,15 @@ function inviteSheet(){
           ${!p.phone&&!p.email?`<button class="chip" data-addcontact="${p.id}">Add contact</button>`:""}
         </span>
       </div>`).join("")}</div>`:""}
-    ${reachable.length<ps.length?`<p class="note">Tap <b>Add contact</b> to save a phone or email for anyone missing one.</p>`:""}`);
+    <p class="note" style="margin-top:9px">${reachable.length<ps.length
+      ? `Tap <b>Add contact</b> to save a phone or email for anyone missing one.`
+      : `These links open on that person's own profile \u2014 no list to pick from.`}</p>
+    <div class="eyebrow">Other ways</div>
+    ${mailAll?`<a class="btn ghost" href="${mailAll}" style="margin-bottom:9px;text-decoration:none">Email ${mails.length} ${mails.length===1?"person":"people"}</a>`:""}
+    <div class="btnrow" style="margin:0">
+      <button class="btn ghost" id="invQR">Show QR code</button>
+      <button class="btn ghost" id="invShare">AirDrop or share</button>
+    </div>`);
   $("#invShare").onclick=()=>{$("#sheet2").classList.remove("on");setTimeout(()=>$("#shareCode").click(),160);};
   $("#invQR").onclick=openQR;
   $("#sheet2Body").onclick=e=>{
@@ -2598,73 +2596,6 @@ async function openQR(){
   }
 }
 
-/* ---------------- contacts ----------------
-   iOS Safari has no Contact Picker API, so a shared .vcf is the only way in:
-   Contacts -> Share Contact -> Save to Files, then pick the file here. Chrome
-   on Android does have the picker, so use it when it is actually there. */
-function parseContactText(txt){
-  const t=String(txt||"").replace(/\r/g,"");
-  if(!t.trim())return {name:"",phone:"",email:""};
-  const em=t.match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+/);
-  const email=em?em[0]:"";
-  // a phone is 7-15 digits, optionally +prefixed, with spaces/dashes/dots/parens between
-  let phone="";
-  for(const m of t.matchAll(/\+?\(?\d[\d\s().\-]{5,18}\d/g)){
-    const digits=m[0].replace(/\D/g,"");
-    if(digits.length<7||digits.length>15)continue;
-    // skip anything sitting inside an email address
-    if(email&&email.indexOf(m[0].trim())>=0)continue;
-    phone=m[0].trim();break;
-  }
-  let name="";
-  for(const raw of t.split("\n")){
-    const l=raw.replace(/^[\s*>\-\u2022]+/,"").trim();
-    if(!l||l.length>48)continue;
-    if(/[@\d]/.test(l))continue;
-    if(/^(mobile|cell|phone|tel|fax|home|work|iphone|main|other|email|e-mail|contact|name|thanks|thank you|thx|regards|best|cheers|sincerely|dear|hi|hello|hey|sent from|from|to|cc|subject|fyi|ps)\b/i.test(l))continue;
-    const words=l.split(/\s+/);
-    if(words.length>4)continue;
-    if(!/[A-Za-z]{2}/.test(l))continue;
-    name=l.replace(/[,;:]+$/,"");break;
-  }
-  return {name,phone,email};
-}
-// a box you paste into beats reading the clipboard: iOS hides that behind a
-// one-second "Paste" menu that is easy to miss, and this shows its work
-function pasteFound(v){
-  const bits=[];
-  if(v.name)bits.push(`name <b>${esc(v.name)}</b>`);
-  if(v.phone)bits.push(`phone <b>${esc(v.phone)}</b>`);
-  if(v.email)bits.push(`email <b>${esc(v.email)}</b>`);
-  return bits.length?`Found ${bits.join(", ")}.`:"Nothing recognisable yet \u2014 needs a name, phone or email.";
-}
-function wirePasteBox(boxId,taId,outId,useId,cb){
-  const ta=$("#"+taId), out=$("#"+outId), use=$("#"+useId);
-  if(!ta)return;
-  const refresh=()=>{
-    const v=parseContactText(ta.value);
-    out.innerHTML=pasteFound(v);
-    use.disabled=!(v.name||v.phone||v.email);
-    use.style.opacity=use.disabled?".45":"";
-  };
-  ta.oninput=refresh; ta.onpaste=()=>setTimeout(refresh,0);
-  refresh();
-  use.onclick=()=>{
-    const v=parseContactText(ta.value);
-    if(!v.name&&!v.phone&&!v.email)return;
-    ta.value="";refresh();
-    $("#"+boxId).style.display="none";
-    cb(v);
-  };
-}
-function pasteBoxHtml(boxId,taId,outId,useId){
-  return `<div id="${boxId}" style="display:none;margin-top:10px">
-    <textarea id="${taId}" rows="4" placeholder="Paste a text, an email signature, anything with their name and number in it"
-      style="width:100%;padding:12px;border:1px solid var(--line);border-radius:11px;background:var(--card);font:inherit;font-size:15px"></textarea>
-    <div class="note" id="${outId}" style="margin:7px 0 9px"></div>
-    <button class="btn teal" id="${useId}" style="margin-bottom:0">Use these details</button>
-  </div>`;
-}
 /* ---------------- Venmo QR codes ---------------- */
 let jsqr=null;
 function loadJsQR(){
