@@ -247,6 +247,11 @@ main{padding:16px 14px 24px;max-width:640px;margin:0 auto}
 .tile:active{transform:scale(.95)}
 .tile.on .l{color:#fff}
 .filterbar{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 4px;scrollbar-width:none}
+.hpill{display:inline-flex;align-items:center;gap:6px;padding:5px 11px 5px 9px;border-radius:999px;
+  background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.2);color:#D8E7E9;
+  font-size:12px;font-weight:600;line-height:1}
+.hpill svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
+.hpill:active{background:rgba(255,255,255,.22)}
 .ppill{flex:0 0 auto;display:inline-flex;align-items:center;gap:8px;padding:6px 13px 6px 6px;
   border-radius:999px;border:1px solid var(--line-soft);background:var(--card);box-shadow:var(--e1)}
 .ppill .nm2{font-size:13px;font-weight:600;max-width:96px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -295,7 +300,7 @@ main{padding:16px 14px 24px;max-width:640px;margin:0 auto}
   padding:10px 14px;z-index:40;pointer-events:none;
   background:linear-gradient(to top,var(--paper) 55%,transparent);
 }
-.addbar button{pointer-events:auto;max-width:612px;margin:0 auto;box-shadow:var(--e3)}
+.addbar button{pointer-events:auto;box-shadow:var(--e3)}
 nav{
   position:fixed;left:0;right:0;bottom:0;height:calc(var(--tab-h) + env(safe-area-inset-bottom));
   padding-bottom:env(safe-area-inset-bottom);
@@ -373,19 +378,19 @@ nav button.on::before{content:"";position:absolute;top:0;left:50%;transform:tran
     <div>
       <button id="tripName" style="color:#fff;font-weight:700;letter-spacing:-.015em;font-size:23px;line-height:1.1;text-align:left;padding:0;display:flex;align-items:center;gap:7px">
         <span id="tripNameTxt">Trip</span>
-        <svg viewBox="0 0 24 24" aria-hidden="true" style="width:15px;height:15px;flex:none;opacity:.72;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round">
-          <circle cx="12" cy="12" r="3.1"/>
-          <path d="M19.1 14.4a1.6 1.6 0 0 0 .3 1.8l.1.1a1.9 1.9 0 1 1-2.7 2.7l-.1-.1a1.6 1.6 0 0 0-2.7 1.1v.3a1.9 1.9 0 1 1-3.8 0v-.2a1.6 1.6 0 0 0-2.8-1.1l-.1.1a1.9 1.9 0 1 1-2.7-2.7l.1-.1a1.6 1.6 0 0 0-1.1-2.7h-.3a1.9 1.9 0 1 1 0-3.8h.2a1.6 1.6 0 0 0 1.1-2.8l-.1-.1a1.9 1.9 0 1 1 2.7-2.7l.1.1a1.6 1.6 0 0 0 1.8.3h.1a1.6 1.6 0 0 0 1-1.5v-.3a1.9 1.9 0 1 1 3.8 0v.2a1.6 1.6 0 0 0 2.7 1.1l.1-.1a1.9 1.9 0 1 1 2.7 2.7l-.1.1a1.6 1.6 0 0 0-.3 1.8v.1a1.6 1.6 0 0 0 1.5 1h.3a1.9 1.9 0 1 1 0 3.8h-.2a1.6 1.6 0 0 0-1.5 1z"/>
-        </svg></button>
-      <div class="hsub" id="tripSub">no expenses yet</div>
+        <svg viewBox="0 0 24 24" aria-hidden="true" style="width:13px;height:13px;flex:none;opacity:.6;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round">
+          <path d="M7 10l5 5 5-5"/></svg></button>
+      <div class="hsub" id="tripSub" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"></div>
     </div>
     <div class="htot">
       <div class="n money" id="tripTotal">0</div>
       <div class="l" id="totLabel">total spent</div>
     </div>
-    <button class="shareBtn" id="actBtn" aria-label="Activity" style="margin-right:-2px">
-      <svg viewBox="0 0 24 24" style="width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round">
-        <circle cx="12" cy="12" r="8.4"/><path d="M12 7.3V12l3.2 1.9"/></svg></button>
+    <button class="shareBtn" id="cogBtn" aria-label="Trip settings" style="margin-right:-2px">
+      <svg viewBox="0 0 24 24" aria-hidden="true" style="width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round">
+        <circle cx="12" cy="12" r="3.1"/>
+        <path d="M19.1 14.4a1.6 1.6 0 0 0 .3 1.8l.1.1a1.9 1.9 0 1 1-2.7 2.7l-.1-.1a1.6 1.6 0 0 0-2.7 1.1v.3a1.9 1.9 0 1 1-3.8 0v-.2a1.6 1.6 0 0 0-2.8-1.1l-.1.1a1.9 1.9 0 1 1-2.7-2.7l.1-.1a1.6 1.6 0 0 0-1.1-2.7h-.3a1.9 1.9 0 1 1 0-3.8h.2a1.6 1.6 0 0 0 1.1-2.8l-.1-.1a1.9 1.9 0 1 1 2.7-2.7l.1.1a1.6 1.6 0 0 0 1.8.3h.1a1.6 1.6 0 0 0 1-1.5v-.3a1.9 1.9 0 1 1 3.8 0v.2a1.6 1.6 0 0 0 2.7 1.1l.1-.1a1.9 1.9 0 1 1 2.7 2.7l-.1.1a1.6 1.6 0 0 0-.3 1.8v.1a1.6 1.6 0 0 0 1.5 1h.3a1.9 1.9 0 1 1 0 3.8h-.2a1.6 1.6 0 0 0-1.5 1z"/>
+      </svg></button>
     <button class="shareBtn" id="shareBtn" aria-label="Share">↗</button>
   </div>
 </header>
@@ -393,7 +398,6 @@ nav button.on::before{content:"";position:absolute;top:0;left:50%;transform:tran
 <main>
   <!-- EXPENSES -->
   <section class="screen on" id="s-log">
-    <div class="filterbar" id="peopleBar" style="padding-bottom:2px"></div>
     <div class="filterbar" id="filterBar"></div>
     <div id="logBody"></div>
   </section>
@@ -431,7 +435,29 @@ nav button.on::before{content:"";position:absolute;top:0;left:50%;transform:tran
 
   <!-- TRIP -->
   <section class="screen" id="s-trip">
-<div class="eyebrow">Your trips</div>
+<div class="eyebrow">This trip</div>
+    <div class="card">
+      <button class="item" id="notesBtn" style="width:100%;text-align:left">
+        <div class="cat"><svg viewBox="0 0 24 24" aria-hidden="true" style="width:19px;height:19px;fill:none;stroke:var(--hull);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round">
+          <path d="M6 3.6h12v16.8H6z"/><path d="M9 8.4h6M9 12h6M9 15.6h3.4"/></svg></div>
+        <div class="mid"><div class="t">Trip notes</div><div class="s" id="notesSub">Door codes, wifi, confirmations</div></div>
+        <div class="amt"><div class="b" style="font-size:19px;color:var(--muted)">›</div></div>
+      </button>
+      <button class="item" id="whoAmIBtn" style="width:100%;text-align:left">
+        <div class="cat"><svg viewBox="0 0 24 24" aria-hidden="true" style="width:19px;height:19px;fill:none;stroke:var(--hull);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round">
+          <circle cx="12" cy="8" r="3.6"/><path d="M5.2 19.2a6.8 6.8 0 0 1 13.6 0"/></svg></div>
+        <div class="mid"><div class="t">Your details</div><div class="s" id="whoAmISub">Name, Venmo, phone and email</div></div>
+        <div class="amt"><div class="b" style="font-size:19px;color:var(--muted)">›</div></div>
+      </button>
+      <button class="item" id="tripActBtn" style="width:100%;text-align:left">
+        <div class="cat"><svg viewBox="0 0 24 24" aria-hidden="true" style="width:19px;height:19px;fill:none;stroke:var(--hull);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round">
+          <circle cx="12" cy="12" r="8.4"/><path d="M12 7.3V12l3.2 1.9"/></svg></div>
+        <div class="mid"><div class="t">Activity</div><div class="s" id="actSub">Who changed what, and when</div></div>
+        <div class="amt"><div class="b" style="font-size:19px;color:var(--muted)">›</div></div>
+      </button>
+    </div>
+
+    <div class="eyebrow">Your trips</div>
     <div class="card" id="tripsBody"></div>
     <div class="card pad" style="margin-top:-2px">
       <div style="font-weight:700;margin-bottom:4px">Start another trip</div>
@@ -519,7 +545,15 @@ nav button.on::before{content:"";position:absolute;top:0;left:50%;transform:tran
   </section>
 </main>
 
-<div class="addbar"><button class="btn" id="fab">+ Add expense</button></div>
+<div class="addbar">
+  <div style="display:flex;gap:9px;max-width:612px;margin:0 auto;pointer-events:none">
+    <button class="btn" id="fab" style="flex:1">+ Add expense</button>
+    <button class="btn" id="camFab" aria-label="Scan a receipt" style="flex:0 0 56px;padding:0;display:grid;place-items:center">
+      <svg viewBox="0 0 24 24" aria-hidden="true" style="width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round">
+        <path d="M3.6 8.4h3.1l1.5-2.2h7.6l1.5 2.2h3.1v10.2H3.6z"/><circle cx="12" cy="13.2" r="3.3"/></svg>
+    </button>
+  </div>
+</div>
 
 <nav>
   <button data-tab="log" class="on" aria-label="Log"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true">
@@ -668,8 +702,20 @@ const CURRENCIES=[
 const curInfo=c=>CURRENCIES.find(x=>x[0]===String(c||"").toUpperCase());
 const curName=c=>{const i=curInfo(c);return i?i[1]:c;};
 const CATS=[["🍽️","Food"],["🍸","Drinks"],["🛒","Groceries"],["⛽","Fuel"],["⚓","Mooring"],["🛥️","Charter"],["🚕","Transport"],["🏨","Lodging"],["🎟️","Activity"],["💶","Other"]];
-const VERSION="1.3.1", BUILT="2026-11-16";
+const VERSION="1.5.0", BUILT="2026-11-16";
 const CHANGES=[
+  ["1.5.0","2026-11-16",[
+    "Invite links about half as long",
+    "Joining asks for your Venmo, phone and email",
+    "Phone numbers on people",
+    "Camera button beside Add expense goes straight to a receipt",
+    "Shared trip notes — door codes, wifi, confirmations"
+  ]],
+  ["1.4.0","2026-11-16",[
+    "People moved into a single pill in the header \u2014 tap it to see or edit everyone",
+    "Activity moved to the Trip tab; settings cog now top right",
+    "Archived trips collapse behind one row"
+  ]],
   ["1.3.1","2026-11-16",[
     "Category spending shows the whole as one segmented bar, with ranked figures below"
   ]],
@@ -876,8 +922,16 @@ function render(){
   $("#tripTotal").textContent=fmtD(tot);
   $("#totLabel").textContent=twoCur()?`total spent · ${dispCur()}`:"total spent";
   const n=people().length;
-  $("#tripSub").textContent=n?`${n} ${n===1?"person":"people"} · ${spend.length} ${spend.length===1?"expense":"expenses"}`:"add people to start";
-  renderLog(list);renderCatBreak();renderDayChart();renderPersonChart();renderFilter();renderPeopleBar();renderBal();renderSettle();renderPeople();renderTrips();renderSync();
+  $("#tripSub").innerHTML=n
+    ? `<button id="whoPill" class="hpill">
+         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.6"/><path d="M5.2 19.2a6.8 6.8 0 0 1 13.6 0"/></svg>
+         ${n} ${n===1?"person":"people"}</button>
+       <span>${spend.length} ${spend.length===1?"expense":"expenses"}</span>`
+    : `<button id="whoPill" class="hpill">
+         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.6"/><path d="M5.2 19.2a6.8 6.8 0 0 1 13.6 0"/></svg>
+         Add people</button>`;
+  const wp=$("#whoPill");if(wp)wp.onclick=openWho;
+  renderLog(list);renderCatBreak();renderDayChart();renderPersonChart();renderFilter();renderBal();renderSettle();renderPeople();renderTrips();renderSync();
   $("#setName").value=S.name||"";
   const curOpts=(cur,none)=>(none?`<option value="">${none}</option>`:"")+
     CURRENCIES.map(([c,n,where,sy])=>
@@ -888,6 +942,24 @@ function render(){
   $("#setBy").value=S.settleBy||"";
   $("#setRate").value=S.rate;$("#curA").textContent=S.cur;$("#curB").textContent=S.alt||"—";
   const cf=$("#carryFrom");if(cf)cf.textContent=S.name||"this trip";
+  const ns=$("#notesSub");
+  if(ns){
+    const t=((S.notes&&S.notes.text)||"").trim();
+    ns.textContent=t?t.split("\n")[0].slice(0,40)+(t.length>40?"…":""):"Door codes, wifi, confirmations";
+  }
+  const ws=$("#whoAmISub");
+  if(ws){
+    const m=meId(),p=m&&S.people[m];
+    ws.textContent=p?`${p.name}${p.venmo?" · @"+venmoHandle(p.venmo):" · no Venmo yet"}`
+      :"Not set — tap to say who you are";
+  }
+  const asub=$("#actSub");
+  if(asub){
+    const e0=activity()[0];
+    asub.textContent=e0
+      ? `${e0.who&&S.people[e0.who]?S.people[e0.who].name:"Someone"} \u00b7 ${agoShort(e0.t)}`
+      : "Who changed what, and when";
+  }
   $("#mePick").innerHTML=`<option value="">No default</option>`+
     people().map(p=>`<option value="${p.id}"${meId()===p.id?" selected":""}>${esc(p.name)}</option>`).join("");
   $("#dispCurSeg").innerHTML=curSeg();$("#bookCur").textContent=S.cur;
@@ -910,20 +982,35 @@ function catTotals(){
   items().filter(i=>i.kind!=="pay").forEach(i=>{const c=i.cat||"💶";m[c]=(m[c]||0)+i.cents;});
   return Object.entries(m).sort((a,b)=>b[1]-a[1]);
 }
-function renderPeopleBar(){
-  const el=$("#peopleBar");if(!el)return;
+function openWho(){
   const ps=people(),b=balances(),me=meId();
-  el.innerHTML=ps.map(p=>{
-    const v=b[p.id]||0;
-    const txt=Math.abs(v)<1?"settled":(v>0?"+":"\u2212")+fmtD(Math.abs(v)).replace("-","");
-    const col=Math.abs(v)<1?"var(--muted)":(v>0?"var(--adriatic-dk)":"var(--coral)");
-    return `<button class="ppill${me===p.id?" me":""}" data-pp="${p.id}">
-      ${avatar(p.id,"sm")}
-      <span style="min-width:0;text-align:left">
-        <span class="nm2">${esc(p.name)}</span>
-        <span class="bal2" style="color:${col}">${txt}</span>
-      </span></button>`;}).join("")
-    +`<button class="ppill add" data-pp="+">+ Add person</button>`;
+  sheet2(ps.length?`${ps.length} ${ps.length===1?"person":"people"}`:"Nobody yet",
+    (ps.length?`<div class="card">${ps.map(p=>{
+      const v=b[p.id]||0;
+      const txt=Math.abs(v)<1?"settled up":(v>0?`is owed ${fmtD(v)}`:`owes ${fmtD(-v)}`);
+      const col=Math.abs(v)<1?"var(--muted)":(v>0?"var(--adriatic-dk)":"var(--coral)");
+      const bits=[];
+      if((p.size||1)>1)bits.push(`${p.size} people`);
+      if(p.email)bits.push(p.email);
+      return `<button class="item" style="width:100%;text-align:left" data-who="${p.id}">
+        ${avatar(p.id)}
+        <div class="mid"><div class="t">${esc(p.name)}${me===p.id?`<span class="note" style="margin:0 0 0 6px">you</span>`:""}</div>
+        <div class="s">${bits.length?esc(bits.join(" \u00b7 ")):"1 person"}</div></div>
+        <div class="amt"><div class="a" style="font-size:13px;font-weight:600;color:${col}">${esc(txt)}</div></div>
+      </button>`;}).join("")}</div>`
+      :`<div class="empty" style="padding:22px"><h3>Nobody yet</h3><p>Add everyone splitting costs.</p></div>`)
+    +`<button class="btn teal" id="whoAdd" style="margin-top:14px">Add someone</button>
+      <p class="note">Tap anyone to change their name, head count, email or Venmo.</p>`);
+  $("#whoAdd").onclick=()=>{
+    $("#sheet2").classList.remove("on");
+    document.querySelector('nav button[data-tab="trip"]').click();
+    setTimeout(()=>{const n=$("#newPerson");if(n){n.scrollIntoView({block:"center",behavior:"smooth"});n.focus();}},220);
+  };
+  $("#sheet2Body").onclick=e=>{
+    const b2=e.target.closest("[data-who]");if(!b2)return;
+    $("#sheet2").classList.remove("on");
+    setTimeout(()=>openPerson2(b2.dataset.who),160);
+  };
 }
 function renderFilter(){
   const cats=catTotals(),el=$("#filterBar");
@@ -1156,21 +1243,32 @@ function renderSettle(){
       <button class="chip" data-pay="${p.from}|${p.to}|${p.v}">Settle</button>
     </div></div>`;}).join("");
 }
+let showArchived=false;
+function tripRow(t,count){
+  const on=t.tripId===S.tripId, n=Object.values(t.people||{}).filter(p=>!p.del).length;
+  const cnt=Object.values(t.items||{}).filter(i=>!i.del).length;
+  return `<div class="row" style="padding:12px 14px;${t.archived?"opacity:.66":""}">
+    <button style="flex:1;text-align:left;min-width:0" data-trip="${t.tripId}">
+      <div style="font-weight:${on?700:600}">${on?"● ":""}${esc(t.name||"Trip")}</div>
+      <div class="note" style="margin:0">${fmt(tripSpend(t),t.cur)} · ${cnt} ${cnt===1?"entry":"entries"} · ${n} ${n===1?"person":"people"}${tripTouched(t)?` · ${whenAgo(tripTouched(t))}`:""}</div>
+    </button>
+    <button class="btn ghost sm" data-arch="${t.tripId}">${t.archived?"Restore":"Archive"}</button>
+    ${count>1?`<button class="btn danger sm" data-deltrip="${t.tripId}">✕</button>`:""}
+  </div>`;
+}
 function renderTrips(){
   const ts=tripList(),el=$("#tripsBody");
-  el.innerHTML=ts.map(t=>{
-    const on=t.tripId===S.tripId, n=Object.values(t.people||{}).filter(p=>!p.del).length;
-    const cnt=Object.values(t.items||{}).filter(i=>!i.del).length;
-    return `<div class="row" style="padding:12px 14px;${t.archived?"opacity:.62":""}">
-      <button style="flex:1;text-align:left;min-width:0" data-trip="${t.tripId}">
-        <div style="font-weight:${on?700:600}">${on?"● ":""}${esc(t.name||"Trip")}${t.archived?" · archived":""}</div>
-        <div class="note" style="margin:0">${fmt(tripSpend(t),t.cur)} · ${cnt} ${cnt===1?"entry":"entries"} · ${n} ${n===1?"person":"people"}${tripTouched(t)?` · ${whenAgo(tripTouched(t))}`:""}</div>
-      </button>
-      <button class="btn ghost sm" data-arch="${t.tripId}">${t.archived?"Restore":"Archive"}</button>
-      ${ts.length>1?`<button class="btn danger sm" data-deltrip="${t.tripId}">✕</button>`:""}
-    </div>`;
-  }).join("");
+  const open=ts.filter(t=>!t.archived), arch=ts.filter(t=>t.archived);
+  el.innerHTML=open.map(t=>tripRow(t,ts.length)).join("")
+    +(arch.length?`<button class="row" id="archToggle" style="padding:13px 14px;width:100%;text-align:left;color:var(--muted)">
+        <span style="font-weight:600;font-size:14px">Archived (${arch.length})</span>
+        <span style="font-size:13px;display:flex;align-items:center;gap:5px">${showArchived?"Hide":"Show"}
+          <svg viewBox="0 0 24 24" aria-hidden="true" style="width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;transform:rotate(${showArchived?180:0}deg)"><path d="M7 10l5 5 5-5"/></svg>
+        </span></button>${showArchived?arch.map(t=>tripRow(t,ts.length)).join(""):""}`:"");
+  const at=$("#archToggle");
+  if(at)at.onclick=()=>{showArchived=!showArchived;renderTrips();};
 }
+
 function payments(){
   return items().filter(i=>i.kind==="pay");   // items() is already newest-first
 }
@@ -1607,15 +1705,6 @@ $("#delItem").onclick=async()=>{
     row=null;locked=null;
   },{passive:true});
 })();
-$("#peopleBar").onclick=e=>{
-  const b=e.target.closest("[data-pp]");if(!b)return;
-  if(b.dataset.pp==="+"){
-    document.querySelector('nav button[data-tab="trip"]').click();
-    setTimeout(()=>{const n=$("#newPerson");if(n){n.scrollIntoView({block:"center",behavior:"smooth"});n.focus();}},200);
-    return;
-  }
-  openPerson2(b.dataset.pp);
-};
 $("#filterBar").onclick=e=>{
   const b=e.target.closest("[data-f]");if(!b)return;
   filter=b.dataset.f;render();window.scrollTo(0,0);
@@ -1628,6 +1717,11 @@ $("#catBody").onclick=e=>{
   render();
 };
 $("#fab").onclick=()=>openSheet(null);
+$("#camFab").onclick=()=>{
+  if(!people().length){toast("Add people under Trip first");return;}
+  openSheet(null);
+  setTimeout(()=>$("#scanIn").click(),280);   // straight to the camera
+};
 $("#logBody").onclick=async e=>{
   const ed=e.target.closest("[data-sw-edit]"),dl=e.target.closest("[data-sw-del]");
   if(ed){document.querySelectorAll(".swipe.open").forEach(r=>r.classList.remove("open"));return openSheet(ed.dataset.swEdit);}
@@ -1814,6 +1908,8 @@ function openPerson2(id){
     <label class="f"><span>How many people is this?</span>
       <input id="edSize" inputmode="numeric" value="${p.size||1}"></label>
     <p class="note" style="margin:-8px 0 16px">Enter 2 for a couple settling together. Costs split per head, payments stay between households.</p>
+    <label class="f"><span>Phone</span>
+      <input id="edPhone" type="tel" inputmode="tel" value="${esc(p.phone||"")}" placeholder="(555) 123-4567" autocomplete="off"></label>
     <label class="f"><span>Email</span>
       <input id="edEmail" type="email" inputmode="email" value="${esc(p.email||"")}" placeholder="name@example.com" autocomplete="off"></label>
     <label class="f"><span>Venmo</span>
@@ -1843,7 +1939,8 @@ function openPerson2(id){
     const rv=$("#edVenmo").value.trim();
     const clean=isScannedCode(rv)?rv:venmoHandle(rv);
     S.people[id]={...S.people[id],name:nm,size:Math.max(1,parseInt($("#edSize").value)||1),
-      email:$("#edEmail").value.trim(),venmo:clean,upd:now(),by:meId()};
+      email:$("#edEmail").value.trim(),phone:$("#edPhone").value.trim(),
+      venmo:clean,upd:now(),by:meId()};
     save();$("#sheet2").classList.remove("on");toast("Saved");
   };
   $("#edDel").onclick=async()=>{
@@ -1896,6 +1993,7 @@ function merge(a,b){
   ["people","items"].forEach(k=>{for(const id in (b[k]||{}))noteClock(b[k][id].upd);});
   const out={...a};
   if((b.metaUpd||0)>(a.metaUpd||0)){out.name=b.name;out.cur=b.cur;out.alt=b.alt;out.rate=b.rate;out.dispCur=b.dispCur;out.settleBy=b.settleBy;out.metaUpd=b.metaUpd;}
+  if(b.notes&&(b.notes.upd||0)>((a.notes&&a.notes.upd)||0))out.notes=b.notes;
   ["people","items"].forEach(k=>{
     out[k]={...a[k]};
     for(const id in b[k]){
@@ -2037,8 +2135,30 @@ function syncAgo(){
   return s<10?"just now":s<60?`${s}s ago`:`${Math.round(s/60)}m ago`;
 }
 function queuePush(){if(!sync)return;clearTimeout(pushTimer);pushTimer=setTimeout(async()=>{await pull(true);await push();markSynced();},900);}
-const enc=o=>btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/=+$/,"");
-const dec=s=>JSON.parse(decodeURIComponent(escape(atob(s))));
+/* Invite codes travel in a URL fragment, so every character counts. A Firebase
+   invite is written as a pipe-delimited string with the fixed parts of the
+   database URL stripped, then base64url'd — roughly half the old length. The
+   old JSON form still decodes, so links already sent keep working. */
+const b64u=str=>btoa(unescape(encodeURIComponent(str))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+const unb64u=s=>decodeURIComponent(escape(atob(s.replace(/-/g,"+").replace(/_/g,"/"))));
+function enc(o){
+  if(o.host==="fb"){
+    const m=String(o.db).match(/^https:\/\/([^.]+)\.([a-z0-9-]+)\.firebasedatabase\.app$/i)
+         || String(o.db).match(/^https:\/\/([^.]+)\.firebaseio\.com$/i);
+    if(m)return "1"+b64u([m[1],m[2]||"",o.path,o.pass||""].join("|"));
+  }
+  return b64u(JSON.stringify(o));   // JSONBin and anything unusual
+}
+function dec(s){
+  if(s[0]==="1"){
+    // the passphrase is last and may itself contain a pipe, so rejoin the tail
+    const [id,region,path,...rest]=unb64u(s.slice(1)).split("|");
+    const pass=rest.join("|");
+    return {host:"fb",path,pass,
+      db:region?`https://${id}.${region}.firebasedatabase.app`:`https://${id}.firebaseio.com`};
+  }
+  return JSON.parse(unb64u(s));
+}
 
 function sheet2(title,html,action){
   $("#sheet2Title").textContent=title;
@@ -2982,7 +3102,32 @@ async function doShare(text,title){
   sheet2(title,`<p class="note" style="margin-bottom:12px">Press and hold to select all, then copy.</p>
     <textarea readonly id="codeBox" style="width:100%;height:52vh;font-size:13px;padding:12px;border:1px solid var(--line);border-radius:11px;background:var(--card)">${esc(text)}</textarea>`);
 }
-$("#actBtn").onclick=openActivity;
+$("#cogBtn").onclick=()=>{
+  document.querySelector('nav button[data-tab="trip"]').click();
+  window.scrollTo(0,0);
+};
+/* One shared scratchpad per trip: the door code, the wifi password, the
+   reservation number — things that otherwise scroll away in a group text. */
+function openNotes(){
+  const n=S.notes||{text:"",upd:0,by:null};
+  sheet2("Trip notes",`
+    <p class="note" style="margin:0 0 12px">Shared with everyone on the trip. Wifi, door codes, check-in times, who's driving.</p>
+    <textarea id="noteBox" placeholder="Door code 4417#&#10;Wifi: DeerValley / powder2027&#10;Check-in 4pm, checkout 10am"
+      style="width:100%;height:44vh;font-size:15px;line-height:1.5;padding:13px;resize:none"></textarea>
+    <div class="note" id="noteMeta" style="margin:8px 0 14px"></div>
+    <button class="btn teal" id="noteSave">Save notes</button>`);
+  $("#noteBox").value=n.text||"";
+  $("#noteMeta").textContent=n.upd
+    ? `Last edited by ${n.by&&S.people[n.by]?S.people[n.by].name:"someone"} · ${agoShort(n.upd)}`
+    : "Nothing saved yet.";
+  $("#noteSave").onclick=()=>{
+    S.notes={text:$("#noteBox").value,upd:now(),by:meId()};
+    save();$("#sheet2").classList.remove("on");toast("Notes saved");
+  };
+}
+$("#notesBtn").onclick=openNotes;
+$("#whoAmIBtn").onclick=()=>{const m=meId();m?openPerson2(m):openWelcome();};
+$("#tripActBtn").onclick=openActivity;
 $("#shareBtn").onclick=()=>{
   if(!items().length){toast("Nothing to share yet");return;}
   sheet2("Share",`
@@ -3020,6 +3165,59 @@ $("#verLine").onclick=()=>{
 };
 
 /* ---------------- boot ---------------- */
+/* After joining, the newcomer says who they are and drops in their own payment
+   details. Without this the organiser has to chase everyone for Venmo handles. */
+function openWelcome(){
+  const ps=people();
+  sheet2("You're in",`
+    <p class="note" style="margin:0 0 16px">Tell the group who you are. Your Venmo handle is what lets everyone settle up with one tap — you only do this once.</p>
+    <label class="f"><span>Which one are you?</span>
+      <select id="wmPick">
+        <option value="">Choose your name</option>
+        ${ps.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join("")}
+        <option value="+">I'm not listed — add me</option>
+      </select></label>
+    <div id="wmNew" style="display:none">
+      <label class="f"><span>Your name</span><input id="wmName" placeholder="Name, or a couple" autocomplete="off"></label>
+      <label class="f"><span>How many people is this?</span><input id="wmSize" inputmode="numeric" value="1"></label>
+    </div>
+    <label class="f"><span>Venmo</span><input id="wmVenmo" placeholder="@handle" autocomplete="off"></label>
+    <label class="f"><span>Phone</span><input id="wmPhone" type="tel" inputmode="tel" placeholder="Optional" autocomplete="off"></label>
+    <label class="f"><span>Email</span><input id="wmEmail" type="email" inputmode="email" placeholder="Optional" autocomplete="off"></label>
+    <button class="btn teal" id="wmSave" style="margin-bottom:9px">Save and start</button>
+    <button class="btn ghost" id="wmSkip">Skip for now</button>`);
+  const pick=$("#wmPick");
+  pick.onchange=()=>{
+    const v=pick.value;
+    $("#wmNew").style.display=v==="+"?"block":"none";
+    const p=S.people[v];
+    if(p){
+      $("#wmVenmo").value=p.venmo?(isScannedCode(p.venmo)?p.venmo:"@"+venmoHandle(p.venmo)):"";
+      $("#wmPhone").value=p.phone||"";
+      $("#wmEmail").value=p.email||"";
+    }
+  };
+  $("#wmSkip").onclick=()=>$("#sheet2").classList.remove("on");
+  $("#wmSave").onclick=()=>{
+    let id=pick.value;
+    if(!id)return toast("Pick your name, or add yourself");
+    if(id==="+"){
+      const nm=$("#wmName").value.trim();
+      if(!nm)return toast("What's your name?");
+      id=uid();
+      S.people[id]={id,name:nm,size:Math.max(1,parseInt($("#wmSize").value)||1),
+        made:now(),upd:now(),by:id,madeBy:id};
+    }
+    const rv=$("#wmVenmo").value.trim();
+    S.people[id]={...S.people[id],
+      venmo:isScannedCode(rv)?rv:venmoHandle(rv),
+      phone:$("#wmPhone").value.trim(),
+      email:$("#wmEmail").value.trim(),
+      upd:now(),by:id};
+    setMe(id);
+    save();$("#sheet2").classList.remove("on");toast(`Welcome, ${nameOf(id)}`);
+  };
+}
 async function joinFromLink(){
   const m=(location.hash||"").match(/[#&]join=([A-Za-z0-9+/=_-]+)/);
   if(!m)return false;
@@ -3035,6 +3233,7 @@ async function joinFromLink(){
   sync=o;saveSync();startStream();persist();
   await pull(false);render();
   document.querySelector('nav button[data-tab="log"]').click();
+  setTimeout(openWelcome,450);   // collect their Venmo while they are paying attention
   return true;
 }
 render();
