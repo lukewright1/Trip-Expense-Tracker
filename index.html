@@ -372,9 +372,14 @@ nav button.on::before{content:"";position:absolute;top:0;left:50%;transform:tran
   <section class="screen" id="s-settle">
     <div class="eyebrow">Show amounts in</div>
     <div class="seg" id="settleCurSeg"></div>
-    <div class="eyebrow">Fewest payments to zero out</div>
+    <div class="eyebrow" id="owedHead">Fewest payments to zero out</div>
     <div class="card" id="settleBody"></div>
     <p class="note" id="settleNote"></p>
+    <div id="paidWrap">
+      <div class="eyebrow">Settled</div>
+      <div class="card" id="paidBody"></div>
+      <p class="note">Tap a settled payment to change the amount or date. Undo puts it back on the list above.</p>
+    </div>
   </section>
 
   <!-- TRIP -->
@@ -458,7 +463,9 @@ nav button.on::before{content:"";position:absolute;top:0;left:50%;transform:tran
       <button class="btn danger sm" style="width:100%;margin-top:9px" id="wipe">Erase this trip</button>
       <input type="file" id="fileIn" accept=".json,application/json" style="display:none">
     </div>
-    <p class="note" style="margin-bottom:40px">Add to Home Screen from your browser's share menu to run it fullscreen like an app.</p>
+    <p class="note">Add to Home Screen from your browser's share menu to run it fullscreen like an app.</p>
+    <button id="verLine" style="display:block;width:100%;text-align:center;color:var(--muted);
+      font-size:12px;padding:18px 0 40px">Trip Split <b id="verNum"></b> \u00b7 <span id="verDate"></span></button>
   </section>
 </main>
 
@@ -534,7 +541,11 @@ nav button.on::before{content:"";position:absolute;top:0;left:50%;transform:tran
 <div class="sheet" id="sheet2">
   <div class="scrim"></div>
   <div class="panel" style="top:auto;height:auto;max-height:90%">
-    <div class="phead"><h2 id="sheet2Title">Sync</h2><button class="x" id="closeSheet2" aria-label="Close">✕</button></div>
+    <div class="phead"><h2 id="sheet2Title">Sync</h2>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span id="sheet2Act" style="display:none"></span>
+        <button class="x" id="closeSheet2" aria-label="Close">✕</button>
+      </div></div>
     <div class="pbody" id="sheet2Body"></div>
   </div>
 </div>
@@ -607,6 +618,16 @@ const CURRENCIES=[
 const curInfo=c=>CURRENCIES.find(x=>x[0]===String(c||"").toUpperCase());
 const curName=c=>{const i=curInfo(c);return i?i[1]:c;};
 const CATS=[["🍽️","Food"],["🍸","Drinks"],["🛒","Groceries"],["⛽","Fuel"],["⚓","Mooring"],["🛥️","Charter"],["🚕","Transport"],["🏨","Lodging"],["🎟️","Activity"],["💶","Other"]];
+const VERSION="1.0.0", BUILT="2026-11-16";
+const CHANGES=[
+  ["1.0.0","2026-11-16",[
+    "Settled payments stay listed, with undo and editable amounts",
+    "Edit moved to the top of an expense",
+    "Venmo opens prefilled on the first tap, and asks for money when you are owed",
+    "Receipt photos share with the group, encrypted",
+    "Live sync — changes land on every phone without a refresh"
+  ]]
+];
 const LS="tripsplit.v1", LSYNC="tripsplit.sync.v1", LSTORE="tripsplit.trips.v1";
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
 const now=()=>Date.now();
@@ -892,7 +913,12 @@ function renderSettle(){
     ?`Venmo opens a prefilled payment. Tap <b>Settle</b> once the money actually moves — however it moved — and the balances update.`
     :`Converted from ${esc(S.cur)} at ${S.rate}. Change the rate under <b>Trip</b>. Payments are still recorded in ${esc(S.cur)}, so the books stay exact.`;
   const s=settlements(),el=$("#settleBody");
-  if(!s.length){el.innerHTML=`<div class="empty"><h3>All square</h3><p>Nobody owes anybody. Enjoy the rest of it.</p></div>`;return;}
+  renderPaid();
+  if(!s.length){
+    const any=items().some(i=>i.kind==="pay");
+    el.innerHTML=`<div class="empty"><h3>All square</h3><p>${any?"Every balance is cleared. The payments are listed below.":"Nobody owes anybody. Enjoy the rest of it."}</p></div>`;
+    return;
+  }
   const ordered=me?[...s].sort((a,b)=>((b.from===me||b.to===me)?1:0)-((a.from===me||a.to===me)?1:0)):s;
   el.innerHTML=ordered.map(p=>{
     const main=fmt(toDisp(p.v),sc);
@@ -929,12 +955,67 @@ function renderTrips(){
     </div>`;
   }).join("");
 }
+function payments(){
+  return items().filter(i=>i.kind==="pay");   // items() is already newest-first
+}
+function renderPaid(){
+  const ps=payments(), wrap=$("#paidWrap"), el=$("#paidBody");
+  if(!wrap||!el)return;
+  if(!ps.length){wrap.style.display="none";el.innerHTML="";return;}
+  wrap.style.display="";
+  const me=meId();
+  el.innerHTML=ps.map(p=>{
+    const from=p.payer, to=(p.with||[])[0];
+    const mine=me&&(from===me||to===me);
+    return `<div class="pay"${mine?' style="background:#F6FAFA"':""}>
+      <div style="display:flex;align-items:center;gap:3px;flex:none;opacity:.75">
+        ${avatar(from,"sm")}<span style="color:var(--muted);font-size:12px">\u2192</span>${avatar(to,"sm")}
+      </div>
+      <button class="flow" style="text-align:left;min-width:0" data-openpay="${p.id}">
+        <div class="who" style="color:var(--muted)">${esc(nameOf(from))} <span class="arrow">paid</span> ${esc(nameOf(to))}</div>
+        <div class="amt money" style="color:var(--adriatic-dk)">${fmtD(p.cents)}</div>
+        <div class="note" style="margin:2px 0 0">${dayLabel(p.date)}</div>
+      </button>
+      <button class="chip" data-unpay="${p.id}" style="flex:none">Undo</button>
+    </div>`;}).join("");
+}
+function openPayment(id){
+  const p=S.items[id];if(!p||p.kind!=="pay")return;
+  const from=p.payer, to=(p.with||[])[0];
+  sheet2("Settled payment",`
+    <div class="card pad" style="margin-bottom:14px;display:flex;align-items:center;gap:10px">
+      ${avatar(from)}<span style="color:var(--muted)">\u2192</span>${avatar(to)}
+      <span style="flex:1;min-width:0">
+        <div style="font-weight:600">${esc(nameOf(from))} paid ${esc(nameOf(to))}</div>
+        <div class="note" style="margin:2px 0 0">Recorded in ${esc(S.cur)}</div>
+      </span>
+    </div>
+    <label class="f"><span>Amount (${esc(S.cur)})</span>
+      <input id="payAmt" inputmode="decimal" value="${(p.cents/100).toFixed(2)}"></label>
+    <label class="f"><span>Date</span><input type="date" id="payDate" value="${p.date}"></label>
+    <button class="btn teal" id="paySave" style="margin-bottom:10px">Save changes</button>
+    <button class="btn danger" id="payUndo">Mark unsettled</button>
+    <p class="note">Marking it unsettled removes the payment and puts the balance back on the list.</p>`);
+  $("#paySave").onclick=()=>{
+    const c=C(parseFloat(($("#payAmt").value||"").replace(",","."))||0);
+    if(c<=0)return toast("Enter an amount");
+    const to2=(S.items[id].with||[])[0];
+    S.items[id]={...S.items[id],cents:c,parts:{[to2]:c},paid:{[S.items[id].payer]:c},
+      date:$("#payDate").value||S.items[id].date,upd:now()};
+    save();$("#sheet2").classList.remove("on");toast("Payment updated");
+  };
+  $("#payUndo").onclick=async()=>{
+    if(!await ask("Mark unsettled?",`${nameOf(from)} \u2192 ${nameOf(to)} for ${fmtD(p.cents)} will be removed and the balance restored.`,"Mark unsettled"))return;
+    S.items[id]={...S.items[id],del:true,upd:now()};
+    save();$("#sheet2").classList.remove("on");toast("Back on the list");
+  };
+}
 function renderPeople(){
   const ps=people();
   $("#peopleBody").innerHTML=ps.length?ps.map(p=>{
     const bits=[];
     if((p.size||1)>1)bits.push(`${p.size} people`);
-    if(p.venmo)bits.push(/^https?:/.test(p.venmo)?"Venmo linked":"@"+p.venmo);
+    if(p.venmo)bits.push(isScannedCode(p.venmo)?"Venmo code \u00b7 no auto-amount":"@"+venmoHandle(p.venmo));
     if(meId()===p.id)bits.unshift("you");
     return `<button class="prow" data-edit-person="${p.id}">
       ${avatar(p.id)}
@@ -1296,12 +1377,22 @@ function pickDisp(e){
 }
 $("#settleCurSeg").onclick=pickDisp;
 $("#dispCurSeg").onclick=pickDisp;
+$("#paidBody").onclick=async e=>{
+  const op=e.target.closest("[data-openpay]");
+  if(op)return openPayment(op.dataset.openpay);
+  const un=e.target.closest("[data-unpay]");
+  if(!un)return;
+  const p=S.items[un.dataset.unpay];if(!p)return;
+  const from=p.payer,to=(p.with||[])[0];
+  if(!await ask("Mark unsettled?",`${nameOf(from)} \u2192 ${nameOf(to)} for ${fmtD(p.cents)} goes back on the list above.`,"Mark unsettled"))return;
+  S.items[p.id]={...p,del:true,upd:now()};save();toast("Back on the list");
+};
 $("#settleBody").onclick=async e=>{
   const vp=e.target.closest("[data-venmopay]");
   if(vp){
     const [from,to,v]=vp.dataset.venmopay.split("|");
     const me=meId();
-    // who the money is coming FROM decides pay vs request
+    // direction decides pay vs request
     const charging = me && to===me && from!==me;     // they owe me -> request it
     const other = charging ? from : to;
     const usd=S.cur==="USD"?+v:(S.alt==="USD"?Math.round(+v*(S.rate||1)):+v);
@@ -1309,18 +1400,21 @@ $("#settleBody").onclick=async e=>{
     if(!rawV)return toast(`Add ${nameOf(other)}'s Venmo handle under People first`);
     const amt=(usd/100).toFixed(2);
     const note=encodeURIComponent(`${S.name} - settling up`);
-    if(/^https?:\/\/.*venmo\.com\/code\?/i.test(rawV)){
-      // a user_id QR only resolves to a profile; nothing can be prefilled
+    if(isScannedCode(rawV)){
+      // a user_id QR identifies the person but carries no username, and the
+      // payment parameters only bind to a username — nothing can be prefilled
       location.href=rawV;
-      toast(`${charging?"Request":"Send"} ${fmt(usd,"USD")} — the amount isn't prefilled for scanned codes`);
+      toast(`Opening ${nameOf(other)} · type ${fmt(usd,"USD")} yourself, or save their @handle to prefill it`);
       return;
     }
-    const h=rawV.replace(/^@+/,"").replace(/^.*venmo\.com\/(u\/)?/,"").split(/[/?#\s]/)[0];
+    const h=venmoHandle(rawV);
     if(!h)return toast(`Add ${nameOf(other)}'s Venmo handle under People first`);
-    // Only the app scheme carries amount and note. The https profile link drops
-    // them, so racing the two just opened a bare profile page.
-    location.href=`venmo://paycharge?txn=${charging?"charge":"pay"}`
-      +`&recipients=${encodeURIComponent(h)}&amount=${amt}&note=${note}`;
+    // Universal link, not the venmo:// scheme. iOS hands the whole URL to the
+    // app even on a cold start; the custom scheme drops its parameters when the
+    // app has to launch first, which is why the first tap landed on a profile.
+    // audience=private keeps trip settlements off the public Venmo feed.
+    location.href=`https://venmo.com/?txn=${charging?"charge":"pay"}`
+      +`&audience=private&recipients=${encodeURIComponent(h)}&amount=${amt}&note=${note}`;
     toast(`${charging?"Requesting":"Sending"} ${fmt(usd,"USD")} ${charging?"from":"to"} @${h} · tap Settle once it clears`);
     return;
   }
@@ -1426,8 +1520,9 @@ function openPerson2(id){
       <input id="edSize" inputmode="numeric" value="${p.size||1}"></label>
     <p class="note" style="margin:-8px 0 16px">Enter 2 for a couple settling together. Costs split per head, payments stay between households.</p>
     <label class="f"><span>Venmo</span>
-      <div class="split2"><input id="edVenmo" value="${p.venmo?(/^https?:/.test(p.venmo)?esc(p.venmo):"@"+esc(p.venmo)):""}" placeholder="@handle" autocomplete="off">
+      <div class="split2"><input id="edVenmo" value="${p.venmo?(isScannedCode(p.venmo)?esc(p.venmo):"@"+esc(venmoHandle(p.venmo))):""}" placeholder="@handle" autocomplete="off">
       <button class="btn ghost" style="flex:0 0 92px" id="edQr">Scan</button></div></label>
+    ${isScannedCode(p.venmo)?`<div class="warn">This is a scanned Venmo code. It opens their profile, but Venmo can only prefill an amount from a username \u2014 replace it with their <b>@handle</b> to get one-tap settling.</div>`:""}
     <button class="btn teal" id="edSave" style="margin-bottom:10px">Save</button>
     <button class="btn danger" id="edDel">Remove from trip</button>`);
   const pick=(accept,cb)=>{
@@ -1449,8 +1544,7 @@ function openPerson2(id){
     const nm=$("#edName").value.trim();
     if(!nm)return toast("Give them a name");
     const rv=$("#edVenmo").value.trim();
-    const clean=/venmo\.com\/code\?/i.test(rv)?rv
-      :rv.replace(/^@+/,"").replace(/^.*venmo\.com\/(u\/)?/,"").split(/[/?#\s]/)[0];
+    const clean=isScannedCode(rv)?rv:venmoHandle(rv);
     S.people[id]={...S.people[id],name:nm,size:Math.max(1,parseInt($("#edSize").value)||1),
       venmo:clean,upd:now()};
     save();$("#sheet2").classList.remove("on");toast("Saved");
@@ -1647,7 +1741,14 @@ function queuePush(){if(!sync)return;clearTimeout(pushTimer);pushTimer=setTimeou
 const enc=o=>btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/=+$/,"");
 const dec=s=>JSON.parse(decodeURIComponent(escape(atob(s))));
 
-function sheet2(title,html){$("#sheet2Title").textContent=title;$("#sheet2Body").innerHTML=html;$("#sheet2").classList.add("on");}
+function sheet2(title,html,action){
+  $("#sheet2Title").textContent=title;
+  $("#sheet2Body").innerHTML=html;
+  const slot=$("#sheet2Act");
+  slot.innerHTML=action||"";
+  slot.style.display=action?"":"none";
+  $("#sheet2").classList.add("on");
+}
 $("#closeSheet2").onclick=()=>$("#sheet2").classList.remove("on");
 
 $("#openFb").onclick=()=>{
@@ -1785,6 +1886,12 @@ function loadJsQR(){
     document.head.appendChild(sc);
   });
   return jsqr;
+}
+function isScannedCode(v){return /^https?:\/\/.*venmo\.com\/code\?/i.test(String(v||"").trim());}
+function venmoHandle(v){
+  const t=String(v||"").trim();
+  if(!t||isScannedCode(t))return "";
+  return t.replace(/^@+/,"").replace(/^.*venmo\.com\/(u\/)?/,"").split(/[/?#\s]/)[0];
 }
 function venmoFromQR(txt){
   if(!txt)return null;
@@ -2283,6 +2390,7 @@ function detailRows(it){
 }
 function openDetail(id){
   const it=S.items[id];if(!it)return;
+  if(it.kind==="pay")return openPayment(id);
   const rows=detailRows(it),pm=paidMap(it);
   const nPay=Object.keys(pm).length;
   const heads=it.mode==="shares"?rows.reduce((a,r)=>a+(r.heads||0),0):null;
@@ -2321,10 +2429,8 @@ function openDetail(id){
       </span></div>`).join("")}</div>
 
     ${it.receipt?`<div class="eyebrow">Receipt</div><div id="rcpt" class="card pad"><div class="note" style="margin:0">Loading\u2026</div></div>`:""}
-    <div class="btnrow" style="margin-top:16px">
-      <button class="btn ghost" data-detail-share="${it.id}">Share this</button>
-      <button class="btn teal" data-detail-edit="${it.id}">Edit</button>
-    </div>`);
+    <button class="btn ghost" style="margin-top:16px" data-detail-share="${it.id}">Share this</button>`,
+    `<button class="chip" data-detail-edit="${it.id}" style="background:var(--ink);color:#fff;border-color:var(--ink);min-height:40px;padding:0 16px">Edit</button>`);
   if(it.receipt)getReceipt(it.id).then(async d=>{
     const box=$("#rcpt");if(!box)return;
     if(d){
@@ -2353,11 +2459,13 @@ function openDetail(id){
       ?`<div class="note" style="margin:0">Whoever added this hasn't uploaded it yet, or it's still syncing. Pull down again in a moment.</div>`
       :`<div class="note" style="margin:0">Added on another phone. Turn on sync under <b>Trip</b> to see shared receipts.</div>`;
   });
-  $("#sheet2Body").onclick=e=>{
+  const act=e=>{
     const ed=e.target.closest("[data-detail-edit]"),sh=e.target.closest("[data-detail-share]");
     if(ed){$("#sheet2").classList.remove("on");setTimeout(()=>openSheet(ed.dataset.detailEdit),160);}
     if(sh){$("#sheet2").classList.remove("on");setTimeout(()=>doShare(buildItem(sh.dataset.detailShare),S.name),160);}
   };
+  $("#sheet2Body").onclick=act;
+  $("#sheet2Act").onclick=act;
 }
 function openPerson(id){
   const rows=[];let paid=0,share=0;
@@ -2487,6 +2595,24 @@ $("#shareBtn").onclick=()=>{
     const txt=k==="sum"?buildSummary():k==="cat"?buildCatsTxt():k==="log"?buildLog():buildPerson(k.slice(2));
     $("#sheet2").classList.remove("on");
     setTimeout(()=>doShare(txt,S.name),150);
+  };
+};
+
+$("#verNum").textContent=VERSION;
+$("#verDate").textContent=new Date(BUILT+"T12:00").toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"});
+$("#verLine").onclick=()=>{
+  sheet2(`Version ${VERSION}`,`
+    <p class="note" style="margin:0 0 16px">Everyone should be on the same version. If someone sees something different, have them close the app fully and reopen it.</p>
+    ${CHANGES.map(([v,d,list])=>`
+      <div class="eyebrow" style="margin-top:0">${esc(v)} \u00b7 ${new Date(d+"T12:00").toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"})}</div>
+      <div class="card"><div class="pad" style="padding-top:12px;padding-bottom:12px">
+        ${list.map(x=>`<div style="display:flex;gap:9px;margin:6px 0;font-size:14px;line-height:1.4">
+          <span style="color:var(--adriatic)">\u2022</span><span>${esc(x)}</span></div>`).join("")}
+      </div></div>`).join("")}
+    <button class="btn ghost" id="verCopy" style="margin-top:8px">Copy version details</button>`);
+  $("#verCopy").onclick=async()=>{
+    const txt=`Trip Split ${VERSION} (${BUILT})`;
+    try{await navigator.clipboard.writeText(txt);toast("Copied");}catch(e){toast(txt);}
   };
 };
 
