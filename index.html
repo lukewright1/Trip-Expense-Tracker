@@ -405,13 +405,14 @@ nav button.on::before{content:"";position:absolute;top:0;left:50%;transform:tran
   <!-- BALANCES -->
   <section class="screen" id="s-bal">
     <div id="reconWarn"></div>
+    <div id="myCard"></div>
     <div class="eyebrow">Spending by day</div>
     <div class="card pad" id="dayChart"></div>
     <div class="eyebrow">Put in vs share</div>
     <div class="card pad" id="personChart"></div>
     <div class="eyebrow">Where the money went</div>
     <div class="card" id="catBody"></div>
-    <div class="eyebrow">Where everyone floats</div>
+    <div class="eyebrow">Everyone</div>
     <div class="card" id="balBody"></div>
     <div class="legend"><span>◀ owes the group</span><span>is owed ▶</span></div>
     <div class="eyebrow">Per person — tap for the full breakdown</div>
@@ -702,8 +703,13 @@ const CURRENCIES=[
 const curInfo=c=>CURRENCIES.find(x=>x[0]===String(c||"").toUpperCase());
 const curName=c=>{const i=curInfo(c);return i?i[1]:c;};
 const CATS=[["🍽️","Food"],["🍸","Drinks"],["🛒","Groceries"],["⛽","Fuel"],["⚓","Mooring"],["🛥️","Charter"],["🚕","Transport"],["🏨","Lodging"],["🎟️","Activity"],["💶","Other"]];
-const VERSION="1.5.0", BUILT="2026-11-16";
+const VERSION="1.6.0", BUILT="2026-11-16";
 const CHANGES=[
+  ["1.6.0","2026-11-16",[
+    "The app leads with your own number once you've said who you are",
+    "Every expense shows your share, or says you're not in it",
+    "Expenses you're not part of are dimmed, never hidden"
+  ]],
   ["1.5.0","2026-11-16",[
     "Invite links about half as long",
     "Joining asks for your Venmo, phone and email",
@@ -919,14 +925,24 @@ function render(){
   $("#tripNameTxt").textContent=S.name||"Trip";
   const list=items(),spend=list.filter(i=>i.kind!=="pay");
   const tot=spend.reduce((a,i)=>a+i.cents,0);
-  $("#tripTotal").textContent=fmtD(tot);
-  $("#totLabel").textContent=twoCur()?`total spent · ${dispCur()}`:"total spent";
+  const me0=meId();
+  if(me0){
+    const net=balances()[me0]||0;
+    $("#tripTotal").textContent=Math.abs(net)<1?"\u2014":fmtD(Math.abs(net));
+    $("#tripTotal").style.color=Math.abs(net)<1?"#8FB3B8":(net>0?"var(--amber)":"#FF9B91");
+    $("#totLabel").textContent=Math.abs(net)<1?"you're all square":(net>0?"you're owed":"you owe");
+  }else{
+    $("#tripTotal").textContent=fmtD(tot);
+    $("#tripTotal").style.color="var(--amber)";
+    $("#totLabel").textContent=twoCur()?`total spent \u00b7 ${dispCur()}`:"total spent";
+  }
+
   const n=people().length;
   $("#tripSub").innerHTML=n
     ? `<button id="whoPill" class="hpill">
          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.6"/><path d="M5.2 19.2a6.8 6.8 0 0 1 13.6 0"/></svg>
          ${n} ${n===1?"person":"people"}</button>
-       <span>${spend.length} ${spend.length===1?"expense":"expenses"}</span>`
+       <span>${spend.length} ${spend.length===1?"expense":"expenses"}${tot?` \u00b7 ${fmtD(tot)} total`:""}</span>`
     : `<button id="whoPill" class="hpill">
          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.6"/><path d="M5.2 19.2a6.8 6.8 0 0 1 13.6 0"/></svg>
          Add people</button>`;
@@ -1120,6 +1136,8 @@ function renderCatBreak(){
     </button>`).join("")}`;
 }
 
+function myShare(it){const m=meId();return m?(shareMap(it)[m]||0):0;}
+function myPaid(it){const m=meId();return m?(paidMap(it)[m]||0):0;}
 function renderLog(all){
   const el=$("#logBody");
   const list=filter==="all"?all:all.filter(i=>(i.cat||"💶")===filter);
@@ -1140,8 +1158,20 @@ function renderLog(all){
     const payTxt=pn.length>1?`${pn.length} people paid`:`${nameOf(pn[0])} paid`;
     const sub=it.kind==="pay"?`${nameOf(it.payer)} → ${nameOf(it.with[0])}`
       :`${payTxt} · ${splitPhrase(it,m,who)}`;
-    const alt=otherCur()&&S.rate?`<div class="b money">${fmt(toOther(it.cents),otherCur())}</div>`:"";
-    h+=`<div class="swipe">
+    const me=meId();
+    const mine=me?(myShare(it)+myPaid(it))>0:true;
+    let alt=otherCur()&&S.rate?`<div class="b money">${fmt(toOther(it.cents),otherCur())}</div>`:"";
+    if(me){
+      if(it.kind==="pay"){
+        alt=it.payer===me?`<div class="b">you paid</div>`
+          :(it.with||[])[0]===me?`<div class="b">paid you</div>`:`<div class="b">not yours</div>`;
+      }else if(!mine){
+        alt=`<div class="b">not in this one</div>`;
+      }else{
+        alt=`<div class="b">your share <span class="money">${fmtD(myShare(it))}</span></div>`;
+      }
+    }
+    h+=`<div class="swipe"${mine?"":' style="opacity:.56"'}>
       <div class="acts"><button class="ed" data-sw-edit="${it.id}">Edit</button><button class="dl" data-sw-del="${it.id}">Delete</button></div>
       <button class="item" data-edit="${it.id}">
       <div style="display:flex;align-items:center;flex:none">
@@ -1157,6 +1187,27 @@ function renderLog(all){
 }
 function renderBal(){
   const b=balances(),ps=people();
+  const me=meId(), mc=$("#myCard");
+  if(mc){
+    if(!me)mc.innerHTML=`<div class="warn" style="margin:2px 0 4px">Set <b>Default payer</b> under Trip to see your own position first.</div>`;
+    else{
+      const net=b[me]||0;
+      let paid=0,share=0;
+      items().forEach(it=>{paid+=paidMap(it)[me]||0;share+=shareMap(it)[me]||0;});
+      const s2=settlements().filter(x=>x.from===me||x.to===me);
+      mc.innerHTML=`<div class="card pad" style="margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:12px">
+          ${avatar(me,"lg")}
+          <div style="flex:1;min-width:0">
+            <div class="note" style="margin:0">${Math.abs(net)<1?"You're all square":(net>0?"You're owed":"You owe")}</div>
+            <div class="money" style="font-size:26px;font-weight:700;line-height:1.15;color:${Math.abs(net)<1?"var(--muted)":(net>0?"var(--adriatic-dk)":"var(--coral)")}">${Math.abs(net)<1?"\u2014":fmtD(Math.abs(net))}</div>
+          </div>
+        </div>
+        <div class="note" style="margin:10px 0 0">You put in ${fmtD(paid)} \u00b7 your share was ${fmtD(share)}</div>
+        ${s2.length?`<div class="note" style="margin:4px 0 0">${s2.map(x=>x.from===me?`Pay ${esc(nameOf(x.to))} ${fmtD(x.v)}`:`${esc(nameOf(x.from))} owes you ${fmtD(x.v)}`).join(" \u00b7 ")}</div>`:""}
+      </div>`;
+    }
+  }
   const off=Object.values(b).reduce((a,v)=>a+v,0);
   $("#reconWarn").innerHTML=Math.abs(off)<2?"":
     `<div class="warn"><b>Books are out by ${fmtD(Math.abs(off))}.</b> Everyone's balance should add up to zero. Usually this means an expense is credited to someone no longer on the trip. Check the log for anything that looks wrong before you settle.</div>`;
