@@ -179,7 +179,9 @@ main{padding:16px 14px 24px;max-width:640px;margin:0 auto}
 .avstack{display:flex;align-items:center}
 .avstack .av:not(:first-child){margin-left:-11px;box-shadow:0 0 0 2px var(--card)}
 .pos{color:var(--adriatic-dk)}.neg{color:var(--coral)}
-.swipe{position:relative;overflow:hidden;border-bottom:1px solid var(--line-soft)}
+.swipe{--sw:156px;position:relative;overflow:hidden;border-bottom:1px solid var(--line-soft)}
+.swipe.one{--sw:78px}
+.swipe .prow{border-bottom:0}
 .swipe:last-child{border-bottom:0}
 .swipe .acts{position:absolute;inset:0 0 0 auto;display:flex;align-items:stretch}
 .swipe .acts button{width:78px;color:#fff;font-weight:700;font-size:14px}
@@ -187,7 +189,7 @@ main{padding:16px 14px 24px;max-width:640px;margin:0 auto}
 .swipe .acts .dl{background:var(--coral)}
 .swipe .item{position:relative;background:var(--card);border-bottom:0;
   transition:transform .22s cubic-bezier(.2,.8,.3,1);will-change:transform;touch-action:pan-y}
-.swipe.open .item{transform:translateX(-156px)}
+.swipe.open .item{transform:translateX(calc(-1 * var(--sw)))}
 .swipe.dragging .item{transition:none}
 
 /* ---------- waterline balance bars ---------- */
@@ -717,8 +719,12 @@ const CURRENCIES=[
 const curInfo=c=>CURRENCIES.find(x=>x[0]===String(c||"").toUpperCase());
 const curName=c=>{const i=curInfo(c);return i?i[1]:c;};
 const CATS=[["🍽️","Food"],["🍸","Drinks"],["🛒","Groceries"],["⛽","Fuel"],["⚓","Mooring"],["🛥️","Charter"],["🚕","Transport"],["🏨","Lodging"],["🎟️","Activity"],["💶","Other"]];
-const VERSION="1.12.2", BUILT="2026-11-18";
+const VERSION="1.13.0", BUILT="2026-11-18";
 const CHANGES=[
+  ["1.13.0","2026-11-18",[
+    "Swipe left on someone in the people list to remove them",
+    "It still asks first, and says if they're on existing expenses"
+  ]],
   ["1.12.2","2026-11-18",[
     "Restore missing photos and contact details from another trip on this phone",
     "Fixed: bringing people to a new trip dropped their photos and contacts, and could wipe them on a synced trip",
@@ -1576,7 +1582,9 @@ function renderPeople(){
       if(p.phone)inv=`<a class="chip pinv" style="text-decoration:none" href="${telHref(p.phone,t.body)}">Text</a>`;
       else if(p.email)inv=`<a class="chip pinv" style="text-decoration:none" href="mailto:${encodeURIComponent(p.email)}?subject=${encodeURIComponent(t.subject)}&body=${encodeURIComponent(t.body)}">Email</a>`;
     }
-    return `<div class="prow">
+    return `<div class="swipe one">
+      <div class="acts"><button class="dl" data-sw-rm="${p.id}">Remove</button></div>
+      <div class="item prow">
       <button class="prowMain" data-edit-person="${p.id}">
         ${avatar(p.id)}
         <span class="pmain">
@@ -1586,7 +1594,7 @@ function renderPeople(){
         <span class="pedit"><svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="M4.5 16.6 15.8 5.3a2 2 0 0 1 2.9 2.9L7.4 19.5l-3.8.9z"/></svg></span>
       </button>${inv}
-    </div>`;}).join("")
+    </div></div>`;}).join("")
     :`<div class="empty" style="padding:26px"><h3>Nobody added yet</h3><p>Add everyone splitting costs. Enter a couple as one line if they settle together.</p></div>`;
   const fx=restorable(),rb=$("#restoreBox");
   if(rb)rb.innerHTML=fx.length?`<div class="card pad" style="margin-top:10px">
@@ -1879,16 +1887,16 @@ $("#delItem").onclick=async()=>{
   S.items[d.id]={...d,del:true,upd:now(),by:meId()};closeSheet();save();toast("Deleted");
   dropReceipt(d.id);
 };
-/* swipe-to-reveal on log rows */
-(function(){
-  let row=null,x0=0,y0=0,dx=0,locked=null;
-  const body=$("#logBody");
+/* swipe-to-reveal on log and people rows */
+function bindSwipe(body){
+  let row=null,x0=0,y0=0,dx=0,locked=null,w=156;
   const closeAll=ex=>document.querySelectorAll(".swipe.open").forEach(r=>{if(r!==ex)r.classList.remove("open");});
   body.addEventListener("touchstart",e=>{
     const r=e.target.closest(".swipe");
     if(!r){closeAll();return;}
     if(e.target.closest(".acts"))return;
     row=r;x0=e.touches[0].clientX;y0=e.touches[0].clientY;dx=0;locked=null;
+    w=r.querySelector(".acts").offsetWidth||156;
     closeAll(r);
   },{passive:true});
   body.addEventListener("touchmove",e=>{
@@ -1902,7 +1910,7 @@ $("#delItem").onclick=async()=>{
     }
     if(locked!=="x")return;
     const open=row.classList.contains("open");
-    dx=Math.max(-156,Math.min(0,(open?-156:0)+mx));
+    dx=Math.max(-w,Math.min(0,(open?-w:0)+mx));
     row.querySelector(".item").style.transform=`translateX(${dx}px)`;
   },{passive:true});
   body.addEventListener("touchend",()=>{
@@ -1910,10 +1918,12 @@ $("#delItem").onclick=async()=>{
     const it=row.querySelector(".item");
     row.classList.remove("dragging");
     it.style.transform="";
-    if(locked==="x")row.classList.toggle("open",dx<-52);
+    if(locked==="x")row.classList.toggle("open",dx<-Math.min(52,w/2));
     row=null;locked=null;
   },{passive:true});
-})();
+}
+bindSwipe($("#logBody"));
+bindSwipe($("#peopleBody"));
 $("#filterBar").onclick=e=>{
   const b=e.target.closest("[data-f]");if(!b)return;
   filter=b.dataset.f;render();window.scrollTo(0,0);
@@ -2195,15 +2205,20 @@ function openPerson2(id,fresh){
       save();$("#sheet2").classList.remove("on");toast("Not added");
       return;
     }
-    const used=items().some(i=>i.payer===id||(i.with||[]).includes(id)||(i.paid&&i.paid[id]));
-    if(!await ask(`Remove ${nameOf(id)}?`,
-      used?"They're on existing expenses. Those stay in the log and their share spreads across whoever is left."
-          :"They'll be taken off this trip.","Remove"))return;
-    S.people[id]={...S.people[id],del:true,upd:now(),by:meId()};
-    if(meId()===id)setMe(null);
-    if(defPayerId()===id)setDefPayer(null);
-    save();$("#sheet2").classList.remove("on");toast("Removed");
+    if(await removePerson(id))$("#sheet2").classList.remove("on");
   };
+}
+async function removePerson(id){
+  if(!S.people[id])return false;
+  const used=items().some(i=>i.payer===id||(i.with||[]).includes(id)||(i.paid&&i.paid[id]));
+  if(!await ask(`Remove ${nameOf(id)}?`,
+    used?"They're on existing expenses. Those stay in the log and their share spreads across whoever is left."
+        :"They'll be taken off this trip.","Remove"))return false;
+  S.people[id]={...S.people[id],del:true,upd:now(),by:meId()};
+  if(meId()===id)setMe(null);
+  if(defPayerId()===id)setDefPayer(null);
+  save();toast("Removed");
+  return true;
 }
 /* Someone added after expenses were logged: offer to put them on the ones that
    were split with everyone, all ticked, so catching up is one tap. Exact splits
@@ -2252,6 +2267,10 @@ function offerBackfill(id){
   return true;
 }
 $("#peopleBody").onclick=e=>{
+  const rm=e.target.closest("[data-sw-rm]");
+  if(rm){document.querySelectorAll(".swipe.open").forEach(r=>r.classList.remove("open"));removePerson(rm.dataset.swRm);return;}
+  const open=e.target.closest(".swipe.open");
+  if(open){open.classList.remove("open");return;}
   const b=e.target.closest("[data-edit-person]");
   if(b)openPerson2(b.dataset.editPerson);
 };
