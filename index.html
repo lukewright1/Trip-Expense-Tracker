@@ -479,6 +479,7 @@ nav button.on::before{content:"";position:absolute;top:0;left:50%;transform:tran
 
     <div class="eyebrow">People splitting costs</div>
     <div class="card" id="peopleBody"></div>
+    <div id="restoreBox"></div>
     <div class="card pad" style="margin-top:-2px">
       <div class="split2">
         <input id="newPerson" placeholder="Add a name or couple" autocomplete="name">
@@ -716,8 +717,13 @@ const CURRENCIES=[
 const curInfo=c=>CURRENCIES.find(x=>x[0]===String(c||"").toUpperCase());
 const curName=c=>{const i=curInfo(c);return i?i[1]:c;};
 const CATS=[["🍽️","Food"],["🍸","Drinks"],["🛒","Groceries"],["⛽","Fuel"],["⚓","Mooring"],["🛥️","Charter"],["🚕","Transport"],["🏨","Lodging"],["🎟️","Activity"],["💶","Other"]];
-const VERSION="1.12.1", BUILT="2026-11-17";
+const VERSION="1.12.2", BUILT="2026-11-18";
 const CHANGES=[
+  ["1.12.2","2026-11-18",[
+    "Restore missing photos and contact details from another trip on this phone",
+    "Fixed: bringing people to a new trip dropped their photos and contacts, and could wipe them on a synced trip",
+    "The photo circle now says what it does"
+  ]],
   ["1.12.1","2026-11-17",[
     "Fixed: entering a trip code merged that trip into whichever trip was open \u2014 it now joins as its own trip",
     "Fixed: switching trips while one was syncing could copy its people and expenses into the other",
@@ -1582,7 +1588,36 @@ function renderPeople(){
       </button>${inv}
     </div>`;}).join("")
     :`<div class="empty" style="padding:26px"><h3>Nobody added yet</h3><p>Add everyone splitting costs. Enter a couple as one line if they settle together.</p></div>`;
+  const fx=restorable(),rb=$("#restoreBox");
+  if(rb)rb.innerHTML=fx.length?`<div class="card pad" style="margin-top:10px">
+      <div style="font-weight:700;margin-bottom:4px">Missing photos or contact details</div>
+      <p class="note" style="margin:0 0 12px">${fx.length} ${fx.length===1?"person has":"people have"} a photo, phone, email or Venmo on another trip on this phone that's blank here.</p>
+      <button class="btn teal" id="restoreGo">Restore ${fx.length===1?"it":"them"}</button></div>`:"";
 }
+/* Fill only blank photo/phone/email/Venmo from the same person on any other
+   trip on this phone. Never overwrites anything already filled in. */
+const RFIELDS=["pic","phone","email","venmo"];
+function restorable(){
+  const out=[];
+  people().forEach(p=>{
+    const fix={};
+    Object.values(store.trips).forEach(t=>{
+      if(t.tripId===S.tripId)return;
+      const q=(t.people||{})[p.id];if(!q||q.del)return;
+      RFIELDS.forEach(f=>{if(!p[f]&&q[f]&&!fix[f])fix[f]=q[f];});
+    });
+    if(Object.keys(fix).length)out.push({id:p.id,fix});
+  });
+  return out;
+}
+document.addEventListener("click",e=>{
+  if(!e.target.closest("#restoreGo"))return;
+  const fx=restorable();if(!fx.length)return;
+  fx.forEach(({id,fix})=>{S.people[id]={...S.people[id],...fix,upd:now(),by:meId()};});
+  save();
+  const pics=fx.filter(x=>x.fix.pic).length;
+  toast(`Restored ${fx.length} ${fx.length===1?"person":"people"}${pics?` \u00b7 ${pics} photo${pics===1?"":"s"}`:""}`);
+});
 
 
 const AVC=["#128C8C","#1E6F8E","#C2772B","#7A5EA6","#2E8B57","#B8475C","#4A6FA5","#8C6A2F"];
@@ -2057,7 +2092,9 @@ function addTrip(){
   const t=blank();t.name=nm;
   if(carry){
     t.cur=S.cur;t.alt=S.alt;t.rate=S.rate;t.dispCur=S.dispCur;
-    people().forEach(p=>t.people[p.id]={id:p.id,name:p.name,size:p.size||1,made:p.made,upd:now(),by:meId()});
+    // copy the whole profile, keeping its edit time: a fresh stamp made these
+    // copies look newer than the originals and wiped photos and contacts in sync
+    people().forEach(p=>t.people[p.id]={...p});
   }
   store.trips[t.tripId]=t;$("#newTrip").value="";
   switchTrip(t.tripId);
@@ -2090,9 +2127,10 @@ function openPerson2(id,fresh){
   const p=S.people[id];if(!p)return;
   sheet2(fresh?`Add ${p.name}`:(p.name||"Person"),`
     ${fresh?`<p class="note" style="margin:0 0 16px">Phone, email and Venmo are all optional \u2014 but a phone lets you text them their own join link, and Venmo is what makes settling up one tap.</p>`:""}
-    <div style="display:flex;justify-content:center;margin-bottom:18px">
+    <div style="display:flex;flex-direction:column;align-items:center;margin-bottom:18px">
       <button id="edPic" style="position:relative">${avatar(id,"lg")}
         <span class="pplus">+</span></button>
+      <button class="btn ghost" id="edPicBtn" style="margin:10px 0 0;width:auto;padding:8px 16px">${p.pic?"Change photo":"Add a photo"}</button>
     </div>
     <label class="f"><span>Name</span><input id="edName" value="${esc(p.name)}" autocomplete="name"></label>
     <label class="f"><span>How many people is this?</span>
@@ -2120,13 +2158,15 @@ function openPerson2(id,fresh){
     i.onchange=async e=>{const f=e.target.files[0];i.remove();if(f)cb(f);};
     i.click();
   };
-  $("#edPic").onclick=()=>pick("image/*",async f=>{
+  const pickPic=()=>pick("image/*",async f=>{
     const d=await openCropper(f,{round:true,out:200,q:.62,
       title:"Frame the face",hint:"Drag to move · pinch to zoom"});
     if(!d)return;
     S.people[id]={...S.people[id],pic:d,upd:now(),by:meId()};save();
     $("#sheet2").classList.remove("on");toast("Photo updated");
   });
+  $("#edPic").onclick=pickPic;
+  $("#edPicBtn").onclick=pickPic;
   $("#edQr").onclick=()=>pick("image/*",f=>scanVenmoQR(f,id));
   if(sync){
     const {subject,body}=inviteText(id);
